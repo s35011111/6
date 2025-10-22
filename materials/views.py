@@ -37,6 +37,7 @@ class LessonRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Lesson.objects.all()
     serializer_class = LessonSerializer
     def perform_destroy(self, instance):
+        instance.is_active = False
         instance.save()
 
 class CourseLessonsListView(generics.ListAPIView):
