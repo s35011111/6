@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from django.contrib.auth.password_validation import validate_password
 from .models import CustomUser
+from .models import Payment
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
@@ -31,3 +32,34 @@ class UserUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = CustomUser
         fields = ['first_name', 'last_name', 'phone', 'image', 'city']
+
+
+
+
+class PaymentSerializer(serializers.ModelSerializer):
+    course_name = serializers.CharField(source='course.name', read_only=True)
+    lesson_name = serializers.CharField(source='lesson.name', read_only=True)
+    user_email = serializers.CharField(source='user.email', read_only=True)
+
+    class Meta:
+        model = Payment
+        fields = [
+            'user', 'user_email', 'course', 'course_name',
+            'lesson', 'lesson_name', 'amount', 'payment_method',
+             'payment_date'
+        ]
+        read_only_fields = ['payment_date']
+
+    def validate(self, data):
+        course = data.get('course')
+        lesson = data.get('lesson')
+        if not course and not lesson:
+            raise serializers.ValidationError(
+                "Either course or lesson must be provided."
+            )
+        if course and lesson and lesson.course != course:
+            raise serializers.ValidationError(
+                "The selected lesson does not belong to the selected course."
+            )
+
+        return data

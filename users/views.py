@@ -2,12 +2,16 @@ from django.db import models
 from django.shortcuts import render
 
 # Create your views here.
-from rest_framework import viewsets, status, permissions
+from rest_framework import viewsets,  permissions
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from django.shortcuts import get_object_or_404
+
 from .models import CustomUser
 from .serializers import UserSerializer, UserCreateSerializer, UserUpdateSerializer
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework import  filters
+from .models import Payment
+from .serializers import PaymentSerializer
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -59,3 +63,21 @@ class UserViewSet(viewsets.ModelViewSet):
         return Response([])
 
 
+
+
+class PaymentViewSet(viewsets.ModelViewSet):
+    serializer_class = PaymentSerializer
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+
+    filterset_fields = { 'course': ['exact'], 'lesson': ['exact'],  }
+
+    search_fields = ['course__name', 'lesson__name']
+    ordering_fields = ['payment_date']
+    ordering = ['-payment_date']
+
+    def get_queryset(self):
+        queryset = Payment.objects.all()
+        user = self.request.user
+        if not user.is_staff:
+            queryset = queryset.filter(user=user)
+        return queryset.select_related('course', 'lesson')
