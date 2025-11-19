@@ -11,6 +11,5 @@ router.register(r'users', UserViewSet, basename='users')
 urlpatterns = [
     path('', include(router.urls)),
     path('payments/user/<int:user_id>/',
-    PaymentViewSet.as_view({'get': 'list'}),
-    name='user-payments'),
+    PaymentViewSet.as_view({'get': 'list'}), name='user-payments'),
 ]
