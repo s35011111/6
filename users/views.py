@@ -1,70 +1,120 @@
-from django.db import models
+from django.contrib.auth import authenticate
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import filters
+from rest_framework import filters, status
 from rest_framework import viewsets
 from rest_framework.decorators import action
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
-from rest_framework.views import APIView
+from rest_framework_simplejwt.tokens import RefreshToken
 
 from .models import CustomUser
 from .models import Payment
-from .permissions import IsRegisteredUser, IsModerator, IsOwner
-from .serializers import PaymentSerializer
-from .serializers import UserCreateSerializer, UserUpdateSerializer
-from .serializers import UserSerializer, LimitedUserSerializer
+from .permissions import IsModerator, IsOwnerOrReadOnly
+from .serializers import PaymentSerializer, UserRegistrationSerializer, UserListSerializer, UserProfileSerializer
 
 
-# Create your views here.
 
 
 class UserViewSet(viewsets.ModelViewSet):
-    queryset = CustomUser.objects.all()
+    queryset = CustomUser.objects.filter(is_active=True)
+
+
     def get_serializer_class(self):
+
         if self.action == 'create':
-            return UserCreateSerializer
-        elif self.action in ['list', 'retrieve'] and not self.request.user.groups.filter(name='Moderators').exists():
-            return LimitedUserSerializer
-        return UserSerializer
+            return UserRegistrationSerializer
+        elif self.action in ['list', 'retrieve']:
+            return UserListSerializer
+        return UserProfileSerializer
+
     def get_permissions(self):
+
+
         if self.action == 'create':
-            permission_classes = []
+            permission_classes = [AllowAny]
+        if self.action == 'register':
+            permission_classes = [AllowAny]
         elif self.action in ['update', 'partial_update', 'destroy']:
-            permission_classes = [IsOwner]
-        elif self.action in ['list']:
-            permission_classes = [IsModerator]
-        elif self.action in ['retrieve']:
-            permission_classes = [IsRegisteredUser | IsModerator]
+            permission_classes = [IsAuthenticated, IsOwnerOrReadOnly]
         else:
-            permission_classes = [IsRegisteredUser | IsModerator]
+            permission_classes = [IsAuthenticated]
+
         return [permission() for permission in permission_classes]
-    def get_queryset(self):
-        user = self.request.user
-        if user.is_staff:
-            return CustomUser.objects.all()
-        return CustomUser.objects.filter(id=user.id)
-    @action(detail=False, methods=['get'])
-    def me(self, request):
-        serializer = self.get_serializer(request.user)
-        return Response(serializer.data)
-    @action(detail=False, methods=['put', 'patch'])
-    def update_me(self, request):
-        serializer = UserUpdateSerializer(request.user, data=request.data, partial=True)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return Response(serializer.data)
-    @action(detail=False, methods=['get'])
-    def search(self, request):
-        query = request.query_params.get('q', '')
-        if query:
-            users = CustomUser.objects.filter(
-                models.Q(email__icontains=query) |
-                models.Q(username__icontains=query) |
-                models.Q(city__icontains=query)
-            )
-            serializer = self.get_serializer(users, many=True)
+
+    @action(detail=False, methods=['post'], permission_classes=[AllowAny])
+    def register(self, request):
+
+        serializer = UserRegistrationSerializer(data=request.data)
+
+        if serializer.is_valid():
+            user = serializer.save()
+            user.is_active=True
+            user.save()
+
+
+            refresh = RefreshToken.for_user(user)
+
+            return Response({
+                'user': UserProfileSerializer(user).data,
+                'refresh': str(refresh),
+                'access': str(refresh.access_token),
+                'message': 'Registration successful'
+            }, status=status.HTTP_201_CREATED)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=False, methods=['post'], permission_classes=[AllowAny])
+    def login(self, request):
+
+        email = request.data.get('email')
+        password = request.data.get('password')
+
+        user = authenticate(request, username=email, password=password)
+
+        if user is not None:
+            refresh = RefreshToken.for_user(user)
+
+            return Response({
+                'user': UserProfileSerializer(user).data,
+                'refresh': str(refresh),
+                'access': str(refresh.access_token)
+            })
+
+        return Response(
+            {'error': 'Invalid credentials'},
+            status=status.HTTP_401_UNAUTHORIZED
+        )
+
+    @action(detail=False, methods=['get', 'put', 'patch'])
+    def profile(self, request):
+
+        if request.method == 'GET':
+            serializer = UserProfileSerializer(request.user)
             return Response(serializer.data)
-        return Response([])
+
+        elif request.method in ['PUT', 'PATCH']:
+            serializer = UserProfileSerializer(
+                request.user,
+                data=request.data,
+                partial=(request.method == 'PATCH')
+            )
+            if serializer.is_valid():
+                serializer.save()
+                return Response(serializer.data)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        return None
+
+    @action(detail=False, methods=['post'])
+    def logout(self, request):
+
+        try:
+            refresh_token = request.data.get("refresh")
+            if refresh_token:
+                token = RefreshToken(refresh_token)
+                token.blacklist()
+            return Response({"message": "Successfully logged out"})
+        except Exception:
+            return Response({"message": "Logged out"}, status=status.HTTP_200_OK)
 
 
 class PaymentViewSet(viewsets.ModelViewSet):
@@ -85,21 +135,12 @@ class PaymentViewSet(viewsets.ModelViewSet):
         return Payment.objects.none()
     def get_permissions(self):
         if self.action in ['create']:
-            permission_classes = [IsRegisteredUser]
+            permission_classes = [IsAuthenticated]
         elif self.action in ['list', 'retrieve']:
-            permission_classes = [IsRegisteredUser | IsModerator]
+            permission_classes = [IsAuthenticated | IsModerator]
         else:
-            permission_classes = [IsRegisteredUser]
+            permission_classes = [IsAuthenticated]
         return [permission() for permission in permission_classes]
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
 
-
-class PublicRegistrationView(APIView):
-    permission_classes = [AllowAny]
-
-    def get(self, request):
-        return Response({
-                'message': 'Only registration is available for unauthenticated users',
-                'registration_endpoint': '/api/users/register/'
-            })

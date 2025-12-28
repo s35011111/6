@@ -4,53 +4,17 @@ from .models import CustomUser
 from .models import Payment
 
 
-class LimitedUserSerializer(serializers.ModelSerializer):
-
-
-    class Meta:
-        model = CustomUser
-        fields = ['id', 'email', 'city',  'user_type']
-        read_only_fields = ['user_type']
-
-
 class UserRegistrationSerializer(serializers.ModelSerializer):
-    password = serializers.CharField(write_only=True)
-    password2 = serializers.CharField(write_only=True)
-
-    class Meta:
-        model = CustomUser
-        fields = ['email', 'password', 'password2']
-
-    def validate(self, attrs):
-        if attrs['password'] != attrs['password2']:
-            raise serializers.ValidationError("Passwords don't match")
-        return attrs
-
-    def create(self, validated_data):
-        validated_data.pop('password2')
-        user = CustomUser.objects.create_user(**validated_data)
-        return user
-
-
-class UserSerializer(serializers.ModelSerializer):
-
-
-    class Meta:
-        model = CustomUser
-        fields = ['id', 'email' , 'phone', 'image', 'city', ]
-
-        read_only_fields = ['id',  'last_login']
-        extra_kwargs = {'email': {'required': True},'username': {'required': True}}
-
-class UserCreateSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, required=True, validators=[validate_password])
     password2 = serializers.CharField(write_only=True, required=True)
 
     class Meta:
         model = CustomUser
-        fields = ['username', 'email', 'password', 'password2', 'phone', 'city']
+
+        fields = ['email', 'password', 'password2', 'first_name', 'last_name', 'phone', 'city']
 
     def validate(self, attrs):
+
         if attrs['password'] != attrs['password2']:
             raise serializers.ValidationError({"password": "Password fields didn't match."})
         return attrs
@@ -58,15 +22,25 @@ class UserCreateSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         validated_data.pop('password2')
         user = CustomUser.objects.create_user(**validated_data)
+
         return user
 
-class UserUpdateSerializer(serializers.ModelSerializer):
+
+class UserProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = CustomUser
-        fields = [ 'phone', 'image', 'city']
+
+        fields = ['id', 'email', 'first_name', 'last_name', 'phone', 'image', 'city',  'date_joined']
+        read_only_fields = ['id', 'email', 'date_joined']
 
 
+class UserListSerializer(serializers.ModelSerializer):
 
+
+    class Meta:
+        model = CustomUser
+
+        fields = ['id', 'email', 'first_name', 'last_name', 'city']
 
 
 class PaymentSerializer(serializers.ModelSerializer):

@@ -3,7 +3,7 @@ from django.contrib import admin
 # Register your models here.
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-from django.contrib.auth.models import Group, Permission
+
 from .models import CustomUser
 
 
@@ -29,19 +29,3 @@ class CustomUserAdmin(UserAdmin):
     )
 
 
-
-class GroupAdmin(admin.ModelAdmin):
-    list_display = ('name', 'display_permissions')
-    filter_horizontal = ('permissions',)
-
-    def display_permissions(self, obj):
-        return ", ".join(
-            [p.name for p in obj.permissions.all()[:3]]) + "..." if obj.permissions.count() > 3 else ", ".join(
-            [p.name for p in obj.permissions.all()])
-
-    display_permissions.short_description = 'Permissions'
-
-
-
-admin.site.unregister(Group)
-admin.site.register(Group, GroupAdmin)
