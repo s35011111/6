@@ -32,3 +32,5 @@ class IsAuthenticatedOrRegisrerOnly(permissions.BasePermission):
         if view.action in ['register','login','create' ]and request.method=='POST':
             return True
         return request.user and request.user.is_authenticated
+
+

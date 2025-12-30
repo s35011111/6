@@ -1,17 +1,19 @@
-from django.shortcuts import render
-
 # Create your views here.
-from rest_framework import viewsets
 from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework import viewsets, permissions
 from rest_framework.permissions import IsAuthenticated
-from .models import Course, Lesson
-from .serializers import CourseSerializer, LessonSerializer
+
 from users.permissions import IsModerator, IsAdmin, IsOwner
+from .models import Course, Lesson
+from .pagination import StandardPagePagination
+from .serializers import CourseSerializer, LessonSerializer
 
 
 class  CourseViewSet(viewsets.ModelViewSet):
     queryset = Course.objects.all()
     serializer_class = CourseSerializer
+    pagination_class = StandardPagePagination
+
     filter_backends = [DjangoFilterBackend]
     filterset_fields = ['name']
     list_permissions = [IsAuthenticated]
@@ -45,6 +47,7 @@ class  CourseViewSet(viewsets.ModelViewSet):
 
 class LessonViewSet(viewsets.ModelViewSet):
     serializer_class = LessonSerializer
+    pagination_class = StandardPagePagination
     list_permissions = [IsAuthenticated]
     retrieve_permissions = [IsAuthenticated]
     create_permissions = [IsAuthenticated & ~IsModerator]
@@ -71,5 +74,7 @@ class LessonViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
+
+
 
 

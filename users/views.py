@@ -1,18 +1,19 @@
 from django.contrib.auth import authenticate
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import filters, status
+from rest_framework import filters, status, permissions
 from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from .models import CustomUser
+from materials.pagination import StandardPagePagination
+
+from .models import CustomUser, Subscription
 from .models import Payment
 from .permissions import IsModerator, IsOwnerOrReadOnly
-from .serializers import PaymentSerializer, UserRegistrationSerializer, UserListSerializer, UserProfileSerializer
-
-
+from .serializers import PaymentSerializer, UserRegistrationSerializer, UserListSerializer, UserProfileSerializer, \
+    SubscriptionSerializer
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -143,4 +144,14 @@ class PaymentViewSet(viewsets.ModelViewSet):
         return [permission() for permission in permission_classes]
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
+
+class SubscriptionViewSet(viewsets.ModelViewSet):
+    serializer_class = SubscriptionSerializer
+    pagination_class = StandardPagePagination
+    permission_classes = [permissions.IsAuthenticated]
+    def get_queryset(self):
+        return Subscription.objects.filter(user=self.request.user, is_active=True)
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
 

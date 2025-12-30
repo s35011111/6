@@ -4,6 +4,10 @@ from django.conf import settings
 # Create your models here.
 
 from typing import Any
+
+
+
+
 ########################################################################
 class Course(models.Model):
     name = models.CharField(max_length=100)
@@ -53,3 +57,5 @@ class Lesson(models.Model):
 
 
 ########################################################################
+
+

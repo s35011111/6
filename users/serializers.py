@@ -1,3 +1,4 @@
+from django.contrib.auth.models import Group
 from rest_framework import serializers
 from django.contrib.auth.password_validation import validate_password
 from .models import CustomUser
@@ -22,6 +23,14 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         validated_data.pop('password2')
         user = CustomUser.objects.create_user(**validated_data)
+        try:
+            user_group=Group.objects.get(name='user')
+            user_group.add(user_group)
+        except:
+            pass
+            """
+            user_group=Group.objects.create(name='user')
+            user_group.add(user_group)"""
 
         return user
 
@@ -70,3 +79,35 @@ class PaymentSerializer(serializers.ModelSerializer):
             )
 
         return data
+
+
+from rest_framework import serializers
+from .models import Subscription
+from django.contrib.auth import get_user_model
+
+User = get_user_model()
+
+
+class SubscriptionSerializer(serializers.ModelSerializer):
+    course_name = serializers.CharField(source='course.name',read_only=True)
+    user_email = serializers.EmailField(source='user.email',read_only=True)
+    class Meta:
+        model = Subscription
+        fields = [ 'id', 'user', 'user_email', 'course', 'course_name']
+        read_only_fields = ['user']
+        extra_kwargs = {'course': {'required': True},}
+    def validate(self, attrs):
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            course = attrs.get('course')
+            existing = Subscription.objects.filter(
+                user=request.user,
+                course=course,
+            ).exists()
+
+            if existing:
+                raise serializers.ValidationError({
+                    'course': 'You are already subscribed to this course.'
+                })
+
+        return attrs

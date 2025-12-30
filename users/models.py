@@ -3,7 +3,7 @@ from django.db import models
 # Create your models here.
 from django.db import models
 from django.conf import settings
-from materials.models import Course, Lesson
+from materials.models import Course
 from django.utils.translation import gettext_lazy as _
 from django.contrib.auth.models import AbstractUser,BaseUserManager
 
@@ -87,3 +87,14 @@ class Payment(models.Model):
     def save(self, *args, **kwargs):
         self.clean()
         super().save(*args, **kwargs)
+
+class Subscription(models.Model):
+    user = models.ForeignKey(CustomUser,on_delete=models.CASCADE,related_name='subscriptions')
+    course = models.ForeignKey(Course,on_delete=models.CASCADE,related_name='subscribers')
+
+    class Meta:
+        unique_together = ['user', 'course']
+
+
+    def __str__(self):
+        return f"{self.user.email} subscribed to {self.course.name}"
