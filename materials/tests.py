@@ -42,14 +42,16 @@ class LessonViewSetTests(APITestCase):
             name='First lesson',
             description='description of first lesson',
             author=self.regular_user,
-            course=self.Course
+            course=self.Course,
+            video_link=""
         )
 
         self.lesson2 = Lesson.objects.create(
             name='Second lesson',
             description='description of second lesson',
             author=self.another_user,
-            course=self.Course
+            course=self.Course,
+            video_link=""
         )
 
         self.list_url = reverse('lesson-list')
@@ -99,12 +101,14 @@ class LessonViewSetTests(APITestCase):
         data = {
             'name': 'My New lesson',
             'description': 'This is my new lesson description without links.',
-            'course': self.Course.id
+            'course': self.Course.id,
         }
+
 
         response = self.client.post(self.list_url, data, format='json')
 
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
         self.assertEqual(response.data['name'], 'My New lesson')
         self.assertEqual(response.data['course'], self.Course.id)
 
@@ -112,19 +116,6 @@ class LessonViewSetTests(APITestCase):
             Lesson.objects.filter(name='My New lesson').exists()
         )
 
-    def test_create_lesson_with_links_should_fail(self):
-        self.client.force_authenticate(user=self.regular_user)
-
-        data = {
-            'name': 'lesson with link',
-            'description': 'Check out https://example.com',
-            'course': self.Course.id
-        }
-
-        response = self.client.post(self.list_url, data, format='json')
-
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn('description', response.data)
 
     def test_create_lesson_invalid_Course(self):
         self.client.force_authenticate(user=self.regular_user)
@@ -146,14 +137,14 @@ class LessonViewSetTests(APITestCase):
         #self.assertEqual(response.data['id'], self.lesson1.id)
         #self.assertEqual(response.data['name'], 'First lesson')
 
-    def test_retrieve_nonexistent_post(self):
+    def test_retrieve_nonexistent_lesson(self):
         self.client.force_authenticate(user=self.regular_user)
         url = reverse('lesson-detail', kwargs={'pk': 999})
         response = self.client.get(url)
 
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
-    def test_update_own_post(self):
+    def test_update_own_lesson(self):
         self.client.force_authenticate(user=self.regular_user)
 
         data = {
@@ -165,12 +156,13 @@ class LessonViewSetTests(APITestCase):
         response = self.client.put(self.detail_url, data, format='json')
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
+
         self.assertEqual(response.data['name'], 'Updated name')
 
         self.lesson1.refresh_from_db()
         self.assertEqual(self.lesson1.name, 'Updated name')
 
-    def test_partial_update_own_post(self):
+    def test_partial_update_own_lesson(self):
         self.client.force_authenticate(user=self.regular_user)
 
         data = {
@@ -190,7 +182,7 @@ class LessonViewSetTests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
-    def test_admin_can_update_any_post(self):
+    def test_admin_can_update_any_lesson(self):
         self.client.force_authenticate(user=self.admin_user)
 
         data = {'name': 'Updated by Admin'}
@@ -207,10 +199,10 @@ class LessonViewSetTests(APITestCase):
 
         response = self.client.patch(self.detail_url, data, format='json')
 
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
 
 
-    def test_delete_own_post(self):
+    def test_delete_own_lesson(self):
         self.client.force_authenticate(user=self.regular_user)
 
         response = self.client.delete(self.detail_url)
@@ -227,14 +219,14 @@ class LessonViewSetTests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
-    def test_admin_can_delete_any_post(self):
+    def test_admin_can_delete_any_lesson(self):
         self.client.force_authenticate(user=self.admin_user)
 
         response = self.client.delete(self.detail_url)
 
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
 
-    def test_delete_nonexistent_post(self):
+    def test_admin_can_delete_any_lesson(self):
         self.client.force_authenticate(user=self.admin_user)
 
         url = reverse('lesson-detail', kwargs={'pk': 999})

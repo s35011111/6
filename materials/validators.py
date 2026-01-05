@@ -12,3 +12,9 @@ def validate_no_links(value):
         if re.search(pattern, value, re.IGNORECASE):
             raise ValidationError("Text cannot contain links or URLs.")
     return value
+
+def validate_youtube_only(value):
+    if value=="" or value is None:return value
+    if "youtube.com" in value:
+        return value
+    else:raise ValidationError("Text cannot contain links or URLs.")

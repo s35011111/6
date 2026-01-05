@@ -150,7 +150,7 @@ class SubscriptionViewSet(viewsets.ModelViewSet):
     pagination_class = StandardPagePagination
     permission_classes = [permissions.IsAuthenticated]
     def get_queryset(self):
-        return Subscription.objects.filter(user=self.request.user, is_active=True)
+        return Subscription.objects.filter(user=self.request.user)
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
 

@@ -21,7 +21,10 @@ class  CourseViewSet(viewsets.ModelViewSet):
     create_permissions = [IsAuthenticated & ~IsModerator]
     update_permissions = [IsAuthenticated, IsOwner | IsModerator | IsAdmin]
     destroy_permissions = [IsAuthenticated, IsOwner | IsAdmin]
-
+    def get_serializer_context(self):
+        context=super().get_serializer_context()
+        context['request']=self.request
+        return context
 
     def get_permissions(self):
         permission_map={'list':self.list_permissions,
