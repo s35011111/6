@@ -111,3 +111,9 @@ class SubscriptionSerializer(serializers.ModelSerializer):
                 })
 
         return attrs
+
+
+class CreatePaymentSerializer(serializers.Serializer):
+    amount = serializers.DecimalField(max_digits=10, decimal_places=2)
+    course_id = serializers.UUIDField(required=False)
+    return_url = serializers.URLField(required=False)
