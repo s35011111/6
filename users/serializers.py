@@ -1,6 +1,10 @@
+from decimal import Decimal
+
 from django.contrib.auth.models import Group
 from rest_framework import serializers
 from django.contrib.auth.password_validation import validate_password
+
+from materials.models import Course
 from .models import CustomUser
 from .models import Payment
 
@@ -64,7 +68,7 @@ class PaymentSerializer(serializers.ModelSerializer):
             'lesson', 'lesson_name', 'amount', 'payment_method',
              'payment_date'
         ]
-        read_only_fields = ['payment_date']
+        read_only_fields = fields
 
     def validate(self, data):
         course = data.get('course')
@@ -117,3 +121,54 @@ class CreatePaymentSerializer(serializers.Serializer):
     amount = serializers.DecimalField(max_digits=10, decimal_places=2)
     course_id = serializers.UUIDField(required=False)
     return_url = serializers.URLField(required=False)
+
+
+class CreateStripeProductSerializer(serializers.Serializer):
+    course_id = serializers.IntegerField()
+
+    def validate_course_id(self, value):
+        try:
+            course = Course.objects.get(id=value)
+            if course.author != self.context['request'].user:
+                raise serializers.ValidationError("You are not the author of this course")
+            return value
+        except Course.DoesNotExist:
+            raise serializers.ValidationError("Course does not exist")
+
+
+class CreateStripePriceSerializer(serializers.Serializer):
+    course_id = serializers.IntegerField()
+    price = serializers.DecimalField(max_digits=10, decimal_places=2, min_value=Decimal('0.01'))
+    currency = serializers.CharField(max_length=3, default='usd')
+
+    def validate_course_id(self, value):
+        try:
+            course = Course.objects.get(id=value)
+            if course.author != self.context['request'].user:
+                raise serializers.ValidationError("You are not the author of this course")
+            if not course.stripe_product_id:
+                raise serializers.ValidationError("Course must have a Stripe product first")
+            return value
+        except Course.DoesNotExist:
+            raise serializers.ValidationError("Course does not exist")
+
+
+class CreateCheckoutSessionSerializer(serializers.Serializer):
+    course_id = serializers.IntegerField()
+    success_url = serializers.URLField()
+    cancel_url = serializers.URLField()
+
+    def validate_course_id(self, value):
+        try:
+            course = Course.objects.get(id=value)
+            if not course.stripe_price_id:
+                raise serializers.ValidationError("This course is not available for purchase")
+
+            return value
+        except Course.DoesNotExist:
+            raise serializers.ValidationError("Course does not exist")
+
+
+class CheckoutSessionResponseSerializer(serializers.Serializer):
+    session_id = serializers.CharField()
+    url = serializers.URLField()

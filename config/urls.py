@@ -30,7 +30,7 @@ schema_view=get_schema_view(openapi.Info(title='Documentation',
                                          contact=openapi.Contact(email='contact@example.com'),
                                          license=openapi.License(name='BDS License'),),
                                     public=True,
-                                    permission_classes=(permissions.AllowAny,),)
+                                    permission_classes=[permissions.AllowAny])
 
 urlpatterns = [
     path('admin/', admin.site.urls),

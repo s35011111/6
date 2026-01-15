@@ -1,4 +1,5 @@
 from django.contrib.auth import authenticate
+from django.utils import timezone
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters, status, permissions
 from rest_framework import viewsets
@@ -8,30 +9,29 @@ from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from materials.pagination import StandardPagePagination
+from users.models import CustomUser, Subscription, Payment
 
-from .models import CustomUser, Subscription
-from .models import Payment
-from .permissions import IsModerator, IsOwnerOrReadOnly
-from .serializers import PaymentSerializer, UserRegistrationSerializer, UserListSerializer, UserProfileSerializer, \
-    SubscriptionSerializer
-import requests
+from users.serializers import UserRegistrationSerializer, UserProfileSerializer, UserListSerializer, \
+    SubscriptionSerializer, PaymentSerializer
+from .service import StripeService
 import json
-import hmac
-import hashlib
-from django.conf import settings
-from rest_framework import viewsets, status
-from rest_framework.decorators import action
+
+from rest_framework import generics, permissions, status
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
-from django.http import HttpResponse
-from django.views.decorators.csrf import csrf_exempt
-from .models import Payment
-from .serializers import PaymentSerializer, CreatePaymentSerializer
+from rest_framework.views import APIView
+from django.shortcuts import get_object_or_404
+from django.urls import reverse
+from .models import Course, Payment
+from .serializers import (
+    CreateStripeProductSerializer,
+    CreateStripePriceSerializer,
+    CreateCheckoutSessionSerializer,
+    CheckoutSessionResponseSerializer
+)
 
 
 class UserViewSet(viewsets.ModelViewSet):
     queryset = CustomUser.objects.filter(is_active=True)
-
 
     def get_serializer_class(self):
 
@@ -43,13 +43,12 @@ class UserViewSet(viewsets.ModelViewSet):
 
     def get_permissions(self):
 
-
         if self.action == 'create':
             permission_classes = [AllowAny]
         if self.action == 'register':
             permission_classes = [AllowAny]
         elif self.action in ['update', 'partial_update', 'destroy']:
-            permission_classes = [IsAuthenticated, IsOwnerOrReadOnly]
+            permission_classes = [IsAuthenticated]
         else:
             permission_classes = [IsAuthenticated]
 
@@ -62,9 +61,8 @@ class UserViewSet(viewsets.ModelViewSet):
 
         if serializer.is_valid():
             user = serializer.save()
-            user.is_active=True
+            user.is_active = True
             user.save()
-
 
             refresh = RefreshToken.for_user(user)
 
@@ -131,238 +129,160 @@ class UserViewSet(viewsets.ModelViewSet):
             return Response({"message": "Logged out"}, status=status.HTTP_200_OK)
 
 
-
 class SubscriptionViewSet(viewsets.ModelViewSet):
     serializer_class = SubscriptionSerializer
     pagination_class = StandardPagePagination
     permission_classes = [permissions.IsAuthenticated]
+
     def get_queryset(self):
         return Subscription.objects.filter(user=self.request.user)
+
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
 
 
-
-
-class PaymentViewSet(viewsets.ModelViewSet):
-    queryset = Payment.objects.all()
-    serializer_class = PaymentSerializer
-    permission_classes = [IsAuthenticated]
-
-    STRIPE_API_URL = "https://api.stripe.com/v1"
-
-    def get_queryset(self):
-        return self.queryset.filter(user=self.request.user)
-
-    def _make_stripe_request(self, method, endpoint, data=None, params=None):
-        url = f"{self.STRIPE_API_URL}/{endpoint}"
-        headers = {
-            'Authorization': f'Bearer {settings.STRIPE_SECRET_KEY}',
-            'Stripe-Version': settings.STRIPE_API_VERSION,
-            'Content-Type': 'application/x-www-form-urlencoded',
-        }
-
-        try:
-            if method == 'POST':
-                response = requests.post(url, headers=headers, data=data, params=params)
-            elif method == 'GET':
-                response = requests.get(url, headers=headers, params=params)
-            elif method == 'DELETE':
-                response = requests.delete(url, headers=headers)
-            else:
-                raise ValueError(f"Unsupported method: {method}")
-
-            response.raise_for_status()
-            return response.json()
-
-        except requests.exceptions.RequestException as e:
-            if hasattr(e, 'response') and e.response is not None:
-                try:
-                    error_data = e.response.json()
-                    error_msg = error_data.get('error', {}).get('message', str(e))
-                except:
-                    error_msg = str(e)
-            else:
-                error_msg = str(e)
-
-            raise Exception(f"Stripe API error: {error_msg}")
-
-    def _format_stripe_data(self, data_dict):
-        formatted = {}
-        for key, value in data_dict.items():
-            if isinstance(value, dict):
-                for sub_key, sub_value in value.items():
-                    formatted[f'{key}[{sub_key}]'] = str(sub_value)
-            elif isinstance(value, list):
-                for i, item in enumerate(value):
-                    if isinstance(item, dict):
-                        for sub_key, sub_value in item.items():
-                            formatted[f'{key}[{i}][{sub_key}]'] = str(sub_value)
-                    else:
-                        formatted[f'{key}[{i}]'] = str(item)
-            else:
-                formatted[key] = str(value)
-        return formatted
-
-    @action(detail=False, methods=['POST'])
-    def create_payment_intent(self, request):
-        serializer = CreatePaymentSerializer(data=request.data)
-        if not serializer.is_valid():
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-        data = serializer.validated_data
-        amount = int(float(data['amount']) * 100)
-
-        try:
-            stripe_data = {
-                'amount': amount,
-                'currency': data['currency'].lower(),
-                'metadata[user_id]': str(request.user.id),
-                'description': f"Payment from {request.user.email}",
-            }
-
-            if data.get('course_id'):
-                stripe_data['metadata[course_id]'] = str(data['course_id'])
-
-            response_data = self._make_stripe_request(
-                method='POST',
-                endpoint='payment_intents',
-                data=stripe_data
+class CreateStripeProductView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+    def post(self, request):
+        serializer = CreateStripeProductSerializer(data=request.data, context={'request': request})
+        serializer.is_valid(raise_exception=True)
+        course = get_object_or_404(Course, id=serializer.validated_data['course_id'])
+        if course.stripe_product_id:
+            return Response(
+                {'error': 'Stripe product already exists for this course'},
+                status=status.HTTP_400_BAD_REQUEST
             )
-
-            payment = Payment.objects.create(
-                user=request.user,
-                amount=data['amount'],
-                currency=data['currency'],
-                status='pending',
-                stripe_payment_id=response_data['id'],
+        try:
+            product = StripeService.create_product(
+                name=course.name,
+                description=course.description,
                 metadata={
-                    'client_secret': response_data['client_secret'],
-                    'raw_response': response_data,
+                    'course_id': str(course.id),
+                    'author_id': str(course.author.id)
                 }
             )
-
+            course.stripe_product_id = product.id
+            course.save()
             return Response({
-                'client_secret': response_data['client_secret'],
-                'payment_id': str(payment.id),
-                'amount': data['amount'],
-                'currency': data['currency'],
+                'success': True,
+                'product_id': product.id,
+                'message': 'Stripe product created successfully'
             }, status=status.HTTP_201_CREATED)
 
         except Exception as e:
-            error_msg = str(e)
-            error_type = "StripeAPIError"
-
-            if "card_error" in error_msg.lower():
-                error_type = "CardError"
-            elif "rate_limit" in error_msg.lower():
-                error_type = "RateLimitError"
-                error_msg = "Too many requests. Please try again later."
-            elif "invalid_request" in error_msg.lower():
-                error_type = "InvalidRequestError"
-
-            return Response({
-                'error': error_msg,
-                'type': error_type,
-            }, status=status.HTTP_400_BAD_REQUEST)
-
-    @action(detail=True, methods=['POST'])
-    def confirm(self, request, pk=None):
-        payment = self.get_object()
-
-        try:
-            response_data = self._make_stripe_request(
-                method='GET',
-                endpoint=f'payment_intents/{payment.stripe_payment_id}'
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_400_BAD_REQUEST
             )
-
-            if response_data['status'] == 'succeeded':
-                payment.status = 'completed'
-                payment.save()
-                return Response({'status': 'success'})
-            else:
-                return Response({
-                    'status': response_data['status'],
-                    'client_secret': response_data.get('client_secret'),
-                })
-
-        except Exception as e:
-            payment.status = 'failed'
-            payment.metadata['error'] = str(e)
-            payment.save()
-            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
-
-    def _verify_stripe_signature(self, payload, sig_header):
+class CreateStripePriceView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+    def post(self, request):
+        serializer = CreateStripePriceSerializer(data=request.data, context={'request': request})
+        serializer.is_valid(raise_exception=True)
+        course = get_object_or_404(Course, id=serializer.validated_data['course_id'])
+        price_cents = int(float(serializer.validated_data['price']) * 100)
         try:
-            timestamp = sig_header.split(',')[0].split('=')[1]
-            signature = sig_header.split(',')[1].split('=')[1]
-
-            signed_payload = f"{timestamp}.{payload.decode('utf-8')}"
-
-            expected_signature = hmac.new(
-                settings.STRIPE_WEBHOOK_SECRET.encode('utf-8'),
-                signed_payload.encode('utf-8'),
-                hashlib.sha256
-            ).hexdigest()
-
-            return hmac.compare_digest(signature, expected_signature)
-        except:
-            return False
-
-    @csrf_exempt
-    @action(detail=False, methods=['POST'], permission_classes=[])
-    def webhook(self, request):
+            price = StripeService.create_price(
+                product_id=course.stripe_product_id,
+                unit_amount=price_cents,
+                currency=serializer.validated_data['currency']
+            )
+            course.stripe_price_id = price.id
+            course.price = serializer.validated_data['price']
+            course.save()
+            return Response({
+                'success': True,
+                'price_id': price.id,
+                'message': 'Stripe price created successfully'
+            }, status=status.HTTP_201_CREATED)
+        except Exception as e:
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+class CreateCheckoutSessionView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+    def post(self, request):
+        serializer = CreateCheckoutSessionSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        course = get_object_or_404(Course, id=serializer.validated_data['course_id'])
+        try:
+            session = StripeService.create_checkout_session(
+                price_id=course.stripe_price_id,
+                success_url=serializer.validated_data['success_url'],
+                cancel_url=serializer.validated_data['cancel_url'],
+                customer_email=request.user.email,
+                metadata={
+                    'course_id': str(course.id),
+                    'user_id': str(request.user.id),
+                    'course_name': course.name
+                }
+            )
+            Payment.objects.create(
+                user=request.user,
+                course=course,
+                stripe_session_id=session.id,
+                amount=course.price,
+            )
+            response_serializer = CheckoutSessionResponseSerializer({
+                'session_id': session.id,
+                'url': session.url
+            })
+            return Response(response_serializer.data, status=status.HTTP_201_CREATED)
+        except Exception as e:
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+class StripeWebhookView(APIView):
+    permission_classes = []
+    http_method_names = ['post']
+    def post(self, request):
         payload = request.body
         sig_header = request.META.get('HTTP_STRIPE_SIGNATURE')
-
-        if not self._verify_stripe_signature(payload, sig_header):
-            return HttpResponse(status=400)
-
         try:
-            event = json.loads(payload)
-        except json.JSONDecodeError:
-            return HttpResponse(status=400)
-
-        if event['type'] == 'payment_intent.succeeded':
-            payment_intent = event['data']['object']
-            self._handle_payment_success(payment_intent)
-        elif event['type'] == 'payment_intent.payment_failed':
-            payment_intent = event['data']['object']
-            self._handle_payment_failed(payment_intent)
-
-        return HttpResponse(status=200)
-
-    def _handle_payment_success(self, payment_intent):
+            from django.conf import settings
+            import stripe
+            event = stripe.Webhook.construct_event(
+                payload, sig_header, settings.STRIPE_WEBHOOK_SECRET
+            )
+        except ValueError as e:
+            return Response({'error': 'Invalid payload'}, status=400)
+        except stripe.error.SignatureVerificationError as e:
+            return Response({'error': 'Invalid signature'}, status=400)
+        if event['type'] == 'checkout.session.completed':
+            session = event['data']['object']
+            self.handle_checkout_session_completed(session)
+        elif event['type'] == 'checkout.session.async_payment_failed':
+            session = event['data']['object']
+            self.handle_checkout_session_failed(session)
+        return Response({'success': True})
+    def handle_checkout_session_completed(self, session):
         try:
-            payment = Payment.objects.get(stripe_payment_id=payment_intent['id'])
-            payment.status = 'completed'
-            payment.metadata['webhook_data'] = payment_intent
-            payment.save()
-
-            if payment.course:
-                self._enroll_user_in_course(payment.user, payment.course)
-
-        except Payment.DoesNotExist:
+            purchase = Payment.objects.get(stripe_session_id=session['id'])
+            purchase.status = 'completed'
+            purchase.stripe_payment_intent_id = session.get('payment_intent')
+            purchase.completed_at = timezone.now()
+            purchase.save()
+            #
+        except Exception:
             pass
-
-    def _handle_payment_failed(self, payment_intent):
+    def handle_checkout_session_failed(self, session):
         try:
-            payment = Payment.objects.get(stripe_payment_id=payment_intent['id'])
-            payment.status = 'failed'
-            payment.metadata['failure_reason'] = payment_intent.get('last_payment_error', {})
-            payment.save()
-        except Payment.DoesNotExist:
+            purchase = Payment.objects.get(stripe_session_id=session['id'])
+            purchase.status = 'failed'
+            purchase.save()
+        except Exception:
             pass
-
-    def _enroll_user_in_course(self, user, course):
-        from users.models import Subscription
-        Subscription.objects.get_or_create(user=user, course=course)
-
-    @action(detail=False, methods=['GET'])
-    def stripe_config(self, request):
-        return Response({
-            'publishableKey': settings.STRIPE_PUBLISHABLE_KEY,
-            'apiVersion': settings.STRIPE_API_VERSION,
-        })
-
-
+class PaymentListView(generics.ListAPIView):
+    serializer_class = PaymentSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    filter_backends = [DjangoFilterBackend,filters.SearchFilter,filters.OrderingFilter]
+    filterset_fields=['course']
+    search_fields= ['amount','payment_date']
+    ordering=['-payment_date']
+    def get_queryset(self):
+        user=self.request.user
+        if user.is_staff or user.is_superuser:
+            return Payment.objects.all().select_related('course','user')
+        return Payment.objects.filter(user=user).select_related('course')

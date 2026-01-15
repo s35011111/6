@@ -18,7 +18,9 @@ class Course(models.Model):
         on_delete=models.CASCADE,
         related_name='authored_courses'
     )
-
+    stripe_product_id = models.CharField(max_length=100, blank=True, null=True)
+    stripe_price_id = models.CharField(max_length=100, blank=True, null=True)
+    price = models.DecimalField(max_digits=10, decimal_places=2)
     def __str__(self: Any) -> str:
         return self.name
 

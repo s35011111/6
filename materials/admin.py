@@ -6,7 +6,7 @@ from materials.models import Course, Lesson
 # Register your models here.
 @admin.register(Course)
 class CourseAdmin(admin.ModelAdmin):
-    list_display = ['id', 'name','author']
+    list_display = ['id', 'name','author','stripe_price_id']
     search_fields = ['name']
 
 
