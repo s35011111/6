@@ -4,7 +4,7 @@ from django.contrib import admin
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 
-from .models import CustomUser, Payment
+from .models import CustomUser, Payment, Subscription
 
 
 @admin.register(CustomUser)
@@ -35,7 +35,7 @@ import json
 
 @admin.register(Payment)
 class PaymentAdmin(admin.ModelAdmin):
-    list_display = ['id', 'user_email', 'course_name', 'amount',  ]#'status','created_at' 'status''stripe_payment_id''stripe_payment_id',
+    list_display = ['id', 'user_email', 'course_name', 'amount','status'  ]#,'created_at' 'status''stripe_payment_id''stripe_payment_id',
     #list_filter = ['status', 'created_at']
     search_fields = [ 'user__email']
 
@@ -61,3 +61,6 @@ class PaymentAdmin(admin.ModelAdmin):
         return f"<pre>{json.dumps(obj.metadata, indent=2)}</pre>" if obj.metadata else "No metadata"
 
     metadata_display.allow_tags = True
+@admin.register(Subscription)
+class SubscriptionAdmin(admin.ModelAdmin):
+    list_display = ['user','course','date']

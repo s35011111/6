@@ -63,6 +63,8 @@ class Payment(models.Model):
     payment_method = models.CharField(max_length=20,choices=PAYMENT_METHOD_CHOICES)
     stripe_session_id = models.CharField(max_length=255)
     stripe_payment_intent_id = models.CharField(max_length=255, null=True, blank=True)
+    STATUS_CHOISES = [('failed', 'FAILED'), ('completed', 'COMPLETED')]
+    status = models.CharField(max_length=20, choices=STATUS_CHOISES)
 
     class Meta:
         ordering = ['-payment_date']
@@ -93,10 +95,12 @@ class Payment(models.Model):
 class Subscription(models.Model):
     user = models.ForeignKey(CustomUser,on_delete=models.CASCADE,related_name='subscriptions')
     course = models.ForeignKey(Course,on_delete=models.CASCADE,related_name='subscribers')
-
+    date = models.DateTimeField(auto_now_add=True)
     class Meta:
         unique_together = ['user', 'course']
 
 
     def __str__(self):
         return f"{self.user.email} subscribed to {self.course.name}"
+
+

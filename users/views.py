@@ -1,26 +1,21 @@
 from django.contrib.auth import authenticate
+from django.contrib.auth.models import Group
+from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import filters, status, permissions
+from rest_framework import filters
+from rest_framework import generics, permissions, status
 from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from materials.pagination import StandardPagePagination
-from users.models import CustomUser, Subscription, Payment
-
+from users.models import CustomUser, Subscription
 from users.serializers import UserRegistrationSerializer, UserProfileSerializer, UserListSerializer, \
     SubscriptionSerializer, PaymentSerializer
-from .service import StripeService
-import json
-
-from rest_framework import generics, permissions, status
-from rest_framework.response import Response
-from rest_framework.views import APIView
-from django.shortcuts import get_object_or_404
-from django.urls import reverse
 from .models import Course, Payment
 from .serializers import (
     CreateStripeProductSerializer,
@@ -28,6 +23,7 @@ from .serializers import (
     CreateCheckoutSessionSerializer,
     CheckoutSessionResponseSerializer
 )
+from .service import StripeService
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -63,6 +59,10 @@ class UserViewSet(viewsets.ModelViewSet):
             user = serializer.save()
             user.is_active = True
             user.save()
+
+            user_group=Group.objects.get(name='user')
+            user.groups.add(user_group)
+
 
             refresh = RefreshToken.for_user(user)
 
@@ -129,16 +129,6 @@ class UserViewSet(viewsets.ModelViewSet):
             return Response({"message": "Logged out"}, status=status.HTTP_200_OK)
 
 
-class SubscriptionViewSet(viewsets.ModelViewSet):
-    serializer_class = SubscriptionSerializer
-    pagination_class = StandardPagePagination
-    permission_classes = [permissions.IsAuthenticated]
-
-    def get_queryset(self):
-        return Subscription.objects.filter(user=self.request.user)
-
-    def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
 
 
 class CreateStripeProductView(APIView):
@@ -228,6 +218,12 @@ class CreateCheckoutSessionView(APIView):
                 'session_id': session.id,
                 'url': session.url
             })
+
+
+            user = self.request.user
+            subscribtion = Subscription.objects.create(user=user,course=course)
+            subscribtion.save()
+
             return Response(response_serializer.data, status=status.HTTP_201_CREATED)
         except Exception as e:
             return Response(
@@ -264,6 +260,8 @@ class StripeWebhookView(APIView):
             purchase.stripe_payment_intent_id = session.get('payment_intent')
             purchase.completed_at = timezone.now()
             purchase.save()
+
+
             #
         except Exception:
             pass
@@ -286,3 +284,35 @@ class PaymentListView(generics.ListAPIView):
         if user.is_staff or user.is_superuser:
             return Payment.objects.all().select_related('course','user')
         return Payment.objects.filter(user=user).select_related('course')
+
+class SubscriptionView(generics.ListAPIView):
+    serializer_class = SubscriptionSerializer
+    pagination_class = StandardPagePagination
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return Subscription.objects.filter(user=self.request.user)
+
+
+from celery.result import AsyncResult
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import permissions
+
+
+class TaskStatusView(APIView):
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request, task_id):
+        task_result = AsyncResult(task_id)
+
+        response = {
+            'task_id': task_id,
+            'status': task_result.status,
+            'result': task_result.result if task_result.ready() else None,
+            'successful': task_result.successful(),
+            'failed': task_result.failed(),
+        }
+
+        return Response(response)

@@ -3,7 +3,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import viewsets, permissions
 from rest_framework.permissions import IsAuthenticated
 
-##from users.permissions import IsModerator, IsAdmin, IsOwner
+from users.permissions import IsModerator, IsAdmin, IsOwner
 from .models import Course, Lesson
 from .pagination import StandardPagePagination
 from .serializers import CourseSerializer, LessonSerializer
@@ -16,11 +16,11 @@ class  CourseViewSet(viewsets.ModelViewSet):
 
     filter_backends = [DjangoFilterBackend]
     filterset_fields = ['name']
-    #list_permissions = [IsAuthenticated]
-    #retrieve_permissions = [IsAuthenticated]
-    #create_permissions = [IsAuthenticated & ~IsModerator]
-    #update_permissions = [IsAuthenticated, IsOwner | IsModerator | IsAdmin]
-    #destroy_permissions = [IsAuthenticated, IsOwner | IsAdmin]
+    list_permissions = [IsAuthenticated]
+    retrieve_permissions = [IsAuthenticated]
+    create_permissions = [IsAuthenticated & ~IsModerator]
+    update_permissions = [IsAuthenticated, IsOwner | IsModerator | IsAdmin]
+    destroy_permissions = [IsAuthenticated, IsOwner | IsAdmin]
     def get_serializer_context(self):
         context=super().get_serializer_context()
         context['request']=self.request
@@ -35,7 +35,7 @@ class  CourseViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
 
-""" def get_permissions(self):
+    def get_permissions(self):
         permission_map={'list':self.list_permissions,
                         'retrieve':self.retrieve_permissions,
                         'create':self.create_permissions,
@@ -45,10 +45,20 @@ class  CourseViewSet(viewsets.ModelViewSet):
 
         if permission_classes_ is None :return []
         return [permission() for permission in permission_classes_]
-"""
 
+from .tasks import send_course_update_notification
 
 class LessonViewSet(viewsets.ModelViewSet):
+    serializer_class = LessonSerializer
+    queryset = Lesson.objects.all()
+
+    pagination_class = StandardPagePagination
+    list_permissions = [IsAuthenticated]
+    retrieve_permissions = [IsAuthenticated]
+    create_permissions = [IsAuthenticated & ~IsModerator]
+    update_permissions = [IsAuthenticated, IsOwner | IsModerator | IsAdmin]
+    destroy_permissions = [IsAuthenticated, IsOwner | IsAdmin]
+
     def get_queryset(self):
         user = self.request.user
         if user.is_superuser or user.groups.filter(name='moderator').exists():
@@ -57,16 +67,9 @@ class LessonViewSet(viewsets.ModelViewSet):
         else: return Lesson.objects.none()
 
     def perform_create(self, serializer):
-        serializer.save(author=self.request.user)
-
-
-""" serializer_class = LessonSerializer
-    pagination_class = StandardPagePagination
-    list_permissions = [IsAuthenticated]
-    retrieve_permissions = [IsAuthenticated]
-    create_permissions = [IsAuthenticated & ~IsModerator]
-    update_permissions = [IsAuthenticated, IsOwner | IsModerator | IsAdmin]
-    destroy_permissions = [IsAuthenticated, IsOwner | IsAdmin]
+        instance=serializer.save(author=self.request.user)
+        course=instance.course
+        send_course_update_notification.delay(course.id,update_message=f"Добавлен урок {instance.name}")
 
 
     def get_permissions(self):
@@ -78,6 +81,6 @@ class LessonViewSet(viewsets.ModelViewSet):
         permission_classes_ =permission_map.get(self.action)
 
         if permission_classes_ is None :return []
-        return [permission() for permission in permission_classes_]"""
+        return [permission() for permission in permission_classes_]
 
 

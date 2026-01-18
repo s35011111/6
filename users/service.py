@@ -14,7 +14,7 @@ class StripeService:
             description: str = None,
             metadata: Dict[str, Any] = None
     ) -> stripe.Product:
-        """Create a product in Stripe"""
+
         try:
             product = stripe.Product.create(
                 name=name,
@@ -33,7 +33,7 @@ class StripeService:
             recurring: bool = False,
             interval: str = None
     ) -> stripe.Price:
-        """Create a price for a product in Stripe"""
+
         try:
             price_data = {
                 'product': product_id,
@@ -58,7 +58,7 @@ class StripeService:
             metadata: Dict[str, Any] = None,
             mode: str = 'payment'
     ) -> stripe.checkout.Session:
-        """Create a checkout session for a price"""
+
         try:
             session_data = {
                 'line_items': [{
@@ -81,7 +81,7 @@ class StripeService:
 
     @staticmethod
     def retrieve_checkout_session(session_id: str) -> stripe.checkout.Session:
-        """Retrieve a checkout session"""
+
         try:
             return stripe.checkout.Session.retrieve(session_id)
         except stripe.error.StripeError as e:
@@ -89,7 +89,7 @@ class StripeService:
 
     @staticmethod
     def deactivate_product(product_id):
-        """Deactivate a product in Stripe"""
+
         try:
             return stripe.Product.update(product_id)
         except stripe.error.StripeError as e:
@@ -97,7 +97,7 @@ class StripeService:
 
     @staticmethod
     def update_product_metadata(product_id: str, metadata: Dict[str, Any]):
-        """Update product metadata"""
+
         try:
             return stripe.Product.update(product_id)
         except stripe.error.StripeError as e:

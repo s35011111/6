@@ -1,12 +1,12 @@
 from django.template.context_processors import request
 from rest_framework import serializers
 from .models import Course, Lesson
-from .validators import  validate_youtube_only
+from .validators import validate_youtube_only, validate_no_links
 
 
 class LessonSerializer(serializers.ModelSerializer):
     course_name = serializers.CharField(source='course.name', read_only=True)
-    ##description = serializers.CharField(validators=[validate_no_links] )
+    description = serializers.CharField(validators=[validate_no_links] )
     video_link=serializers.CharField(validators=[validate_youtube_only] ,required=False)
 
     class Meta:
