@@ -9,6 +9,9 @@ app = Celery('config')
 
 app.config_from_object('django.conf:settings', namespace='CELERY')
 
+app.conf.brocker_url='redis://redis:6379/0'
+app.conf.result_backend='redis://redis:6379/0'
+
 app.autodiscover_tasks()
 
 app.conf.beat_schedule = {

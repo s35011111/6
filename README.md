@@ -9,9 +9,13 @@
  + Заполните env файл используя шаблон env_templates
  + Открыв терминал перейдите в директорию проекта
  + Запустите проект с помощью команд:
+
 docker-compose up --build -d
+
 docker-compose exec django python manage.py migrate
+
  + В браузере сможете увидеть работающий проект по адресу:
+
 http://localhost:8000/api
 
  ## Работоспособность сервисов
