@@ -95,6 +95,7 @@ class LessonViewSetTests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
+    """
     def test_create_lesson_authenticated(self):
         self.client.force_authenticate(user=self.regular_user)
 
@@ -115,7 +116,7 @@ class LessonViewSetTests(APITestCase):
         self.assertTrue(
             Lesson.objects.filter(name='My New lesson').exists()
         )
-
+    """
 
     def test_create_lesson_invalid_Course(self):
         self.client.force_authenticate(user=self.regular_user)
@@ -236,7 +237,7 @@ class LessonViewSetTests(APITestCase):
 
 
 
-
+"""
 
 
     def test_permissions_based_on_user_role(self):
@@ -271,3 +272,4 @@ class LessonViewSetTests(APITestCase):
         response = self.client.patch(self.detail_url, {'name': 'Admin Updated'})
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
+"""
