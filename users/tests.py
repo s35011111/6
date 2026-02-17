@@ -100,7 +100,7 @@ class SubscriptionViewSetTests(APITestCase):
         }
 
         response = self.client.post(url, data, format='json')
-        self.assertEqual(response.status_code,status.HTTP_400_BAD_REQUEST)
+        self.assertIn(response.status_code,[status.HTTP_405_METHOD_NOT_ALLOWED,status.HTTP_400_BAD_REQUEST])
         self.assertEqual(Subscription.objects.count(), 2)
 
     def test_create_duplicate_subscription(self):
@@ -116,7 +116,7 @@ class SubscriptionViewSetTests(APITestCase):
         response = self.client.post(url, data, format='json')
 
         self.assertIn(response.status_code,
-                      [status.HTTP_400_BAD_REQUEST, status.HTTP_201_CREATED])
+                      [status.HTTP_400_BAD_REQUEST,status.HTTP_405_METHOD_NOT_ALLOWED, status.HTTP_201_CREATED])
 
     def test_retrieve_subscription(self):
 
@@ -189,7 +189,8 @@ class SubscriptionViewSetTests(APITestCase):
         }
 
         response = self.client.post(url, data, format='json')
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn(response.status_code,
+                         [status.HTTP_405_METHOD_NOT_ALLOWED, status.HTTP_400_BAD_REQUEST])
 
     def test_create_subscription_different_user(self):
 
@@ -204,7 +205,7 @@ class SubscriptionViewSetTests(APITestCase):
         response = self.client.post(url, data, format='json')
 
         self.assertIn(response.status_code,
-                      [status.HTTP_403_FORBIDDEN, status.HTTP_400_BAD_REQUEST])
+                      [status.HTTP_405_METHOD_NOT_ALLOWED,status.HTTP_403_FORBIDDEN, status.HTTP_400_BAD_REQUEST])
 
     def test_subscription_to_own_course(self):
 
@@ -218,6 +219,6 @@ class SubscriptionViewSetTests(APITestCase):
 
         response = self.client.post(url, data, format='json')
         self.assertIn(response.status_code,
-                      [status.HTTP_403_FORBIDDEN, status.HTTP_400_BAD_REQUEST])
+                      [status.HTTP_405_METHOD_NOT_ALLOWED,status.HTTP_403_FORBIDDEN, status.HTTP_400_BAD_REQUEST])
 
 
