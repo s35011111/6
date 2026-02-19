@@ -59,34 +59,28 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Deploy to server via SSH
+      - name: Deploy with Docker Compose
         uses: appleboy/ssh-action@v1.0.0
         with:
-            host: ${{ secrets.SERVER_IP }}
-            username: ${{ secrets.SSH_USER }}
-            key: ${{ secrets.SSH_KEY }}
-            script: |
-              
-              echo "${{secrets.DOCKER_HUB_ACCESS_TOKEN }}" | sudo docker login -u "${{ secrets.DOCKER_HUB_USERNAME }}" --password-stdin
+          host: ${{ secrets.SERVER_IP }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          script: |
+            cd /path/to/app   
 
-              
-              sudo docker pull ${{ secrets.DOCKER_HUB_USERNAME }}/myapp:${{ github.sha }}
+            
+            echo "${{secrets.DOCKER_HUB_ACCESS_TOKEN }}" | sudo docker login -u "${{ secrets.DOCKER_HUB_USERNAME }}" --password-stdin
 
-              
-              sudo docker stop myapp || true
-              sudo docker rm myapp || true
+            
+            sudo docker compose pull
 
-              
-              mkdir -p ~/myapp-env
-              echo "${{ secrets.ENV_FILE }}" > ~/myapp-env/.env
+            
+            sudo docker compose down || true
 
-              
-              sudo docker run -d \
-                  --name myapp \
-                  --restart unless-stopped \
-                  -p 80:8000 \
-                  --env-file ~/myapp-env/.env \
-                  ${{ secrets.DOCKER_HUB_USERNAME }}/myapp:${{ github.sha }}
+            
+            echo "${{ secrets.ENV_FILE }}" > .env
 
-              
-              sudo docker image prune -f
+            sudo docker compose up -d --build
+
+            
+            sudo docker image prune -f
