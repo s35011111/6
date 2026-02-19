@@ -52,42 +52,41 @@ jobs:
       - name: Push Docker image to Docker Hub
         run: docker push ${{ secrets.DOCKER_HUB_USERNAME }}/myapp:${{ github.sha }}
 
-deploy:
-  runs-on: ubuntu-latest
-  needs: build
-  steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    - name: Deploy to server via SSH
-      uses: appleboy/ssh-action@v1.0.0
-      with:
-        host: ${{ secrets.SERVER_IP }}
-        username: ${{ secrets.SSH_USER }}
+      - name: Deploy to server via SSH
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+            host: ${{ secrets.SERVER_IP }}
+            username: ${{ secrets.SSH_USER }}
 
-        script: |
-          
-          echo "${{secrets.DOCKER_HUB_ACCESS_TOKEN }}" | sudo docker login -u "${{ secrets.DOCKER_HUB_USERNAME }}" --password-stdin
+            script: |
+              
+              echo "${{secrets.DOCKER_HUB_ACCESS_TOKEN }}" | sudo docker login -u "${{ secrets.DOCKER_HUB_USERNAME }}" --password-stdin
 
-          
-          sudo docker pull ${{ secrets.DOCKER_HUB_USERNAME }}/myapp:${{ github.sha }}
+              
+              sudo docker pull ${{ secrets.DOCKER_HUB_USERNAME }}/myapp:${{ github.sha }}
 
-          
-          sudo docker stop myapp || true
-          sudo docker rm myapp || true
+              
+              sudo docker stop myapp || true
+              sudo docker rm myapp || true
 
-          
-          mkdir -p ~/myapp-env
-          echo "${{ secrets.ENV_FILE }}" > ~/myapp-env/.env
+              
+              mkdir -p ~/myapp-env
+              echo "${{ secrets.ENV_FILE }}" > ~/myapp-env/.env
 
-          
-          sudo docker run -d \
-            --name myapp \
-            --restart unless-stopped \
-            -p 80:8000 \
-            --env-file ~/myapp-env/.env \
-            ${{ secrets.DOCKER_HUB_USERNAME }}/myapp:${{ github.sha }}
+              
+              sudo docker run -d \
+                  --name myapp \
+                  --restart unless-stopped \
+                  -p 80:8000 \
+                  --env-file ~/myapp-env/.env \
+                  ${{ secrets.DOCKER_HUB_USERNAME }}/myapp:${{ github.sha }}
 
-          
-          sudo docker image prune -f            
-           
+              
+              sudo docker image prune -f
