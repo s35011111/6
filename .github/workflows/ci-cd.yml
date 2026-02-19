@@ -67,7 +67,8 @@ jobs:
             sudo docker pull ${{ secrets.DOCKER_HUB_USERNAME }}/myapp:${{ github.sha }}
             sudo docker stop myapp || true
             sudo docker rm myapp || true
-            sudo docker-compose down || true
-            sudo docker-compose up --build -d
+            sudo docker compose down || true
+            sudo docker compose up --build -d
+          
             
            
