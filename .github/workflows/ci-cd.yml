@@ -64,7 +64,7 @@ jobs:
         with:
             host: ${{ secrets.SERVER_IP }}
             username: ${{ secrets.SSH_USER }}
-
+            key: ${{ secrets.SSH_KEY }}
             script: |
               
               echo "${{secrets.DOCKER_HUB_ACCESS_TOKEN }}" | sudo docker login -u "${{ secrets.DOCKER_HUB_USERNAME }}" --password-stdin
