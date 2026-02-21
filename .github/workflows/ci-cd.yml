@@ -71,6 +71,7 @@ jobs:
         uses: appleboy/ssh-action@v1.0.0
         env:
           GITHUB_SHA: ${{ github.sha }}
+          DHU: ${{ secrets.DOCKER_HUB_USERNAME }}
         with:
           host: ${{ secrets.SERVER_IP }}
           username: ${{ secrets.SSH_USER }}
@@ -81,5 +82,5 @@ jobs:
             sudo docker compose pull
             sudo docker compose down || true
             echo "${{ secrets.ENV_FILE }}" > /home/${{ secrets.SSH_USER }}/myapp/.env
-            sudo TAG=$GITHUB_SHA DOCKER_HUB_USERNAME=${{ secrets.DOCKER_HUB_USERNAME }} docker compose up -d --build
+            sudo TAG=$GITHUB_SHA DOCKER_HUB_USERNAME=$DUH docker compose up -d --build
             sudo docker image prune -f
