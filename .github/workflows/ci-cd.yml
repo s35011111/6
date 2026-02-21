@@ -77,8 +77,8 @@ jobs:
           key: ${{ secrets.SSH_KEY }}
           script: |
             cd /home/${{ secrets.SSH_USER }}/myapp
-            export TAG=$GITHUB_SHA
-            export DOCKER_HUB_USERNAME=${{ secrets.DOCKER_HUB_USERNAME }}
+            sudo export TAG=$GITHUB_SHA
+            sudo export DOCKER_HUB_USERNAME=${{ secrets.DOCKER_HUB_USERNAME }}
             echo "${{secrets.DOCKER_HUB_ACCESS_TOKEN }}" | sudo docker login -u "${{ secrets.DOCKER_HUB_USERNAME }}" --password-stdin
             sudo docker compose pull
             sudo docker compose down || true
