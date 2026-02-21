@@ -77,10 +77,10 @@ jobs:
           script: |
             cd /home/${{ secrets.SSH_USER }}/myapp
             echo "${{secrets.DOCKER_HUB_ACCESS_TOKEN }}" | sudo docker login -u "${{ secrets.DOCKER_HUB_USERNAME }}" --password-stdin
-            sudo docker compose pull
-            sudo docker compose down || true
+            export TAG=${{ github.sha }}
+            sudo -E docker compose pull
+            sudo -E docker compose down || true
             echo "${{ secrets.ENV_FILE }}" > /home/${{ secrets.SSH_USER }}/myapp/.env
-            sudo TAG=$GITHUB_SHA docker compose up -d --build
-            sudo docker image prune -f
-        env:
-          GITHUB_SHA: ${{ github.sha }}
+            sudo -E docker compose up -d --build
+            sudo -E docker image prune -f
+        
