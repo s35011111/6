@@ -77,11 +77,9 @@ jobs:
           key: ${{ secrets.SSH_KEY }}
           script: |
             cd /home/${{ secrets.SSH_USER }}/myapp
-            export TAG=$GITHUB_SHA
-            export DOCKER_HUB_USERNAME=${{ secrets.DOCKER_HUB_USERNAME }}
             echo "${{secrets.DOCKER_HUB_ACCESS_TOKEN }}" | sudo docker login -u "${{ secrets.DOCKER_HUB_USERNAME }}" --password-stdin
-            sudo -E docker compose pull
-            sudo -E docker compose down || true
+            sudo docker compose pull
+            sudo docker compose down || true
             echo "${{ secrets.ENV_FILE }}" > /home/${{ secrets.SSH_USER }}/myapp/.env
-            sudo -E docker compose up -d --build
+            sudo TAG=$GITHUB_SHA DOCKER_HUB_USERNAME=${{ secrets.DOCKER_HUB_USERNAME }} docker compose up -d --build
             sudo docker image prune -f
