@@ -55,4 +55,6 @@ services:
       - redis
       - web
 
-  # Celery Beat (Scheduler)
+volumes:
+  postgres_data:
+
