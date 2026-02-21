@@ -71,7 +71,7 @@ jobs:
         uses: appleboy/ssh-action@v1.0.0
         env:
           GITHUB_SHA: ${{ github.sha }}
-          DHU: ${{ secrets.DOCKER_HUB_USERNAME }}
+
         with:
           host: ${{ secrets.SERVER_IP }}
           username: ${{ secrets.SSH_USER }}
@@ -79,6 +79,7 @@ jobs:
           script: |
             cd /home/${{ secrets.SSH_USER }}/myapp
             echo "${{secrets.DOCKER_HUB_ACCESS_TOKEN }}" | sudo docker login -u "${{ secrets.DOCKER_HUB_USERNAME }}" --password-stdin
+            export DHU=${{ secrets.DOCKER_HUB_USERNAME }}
             sudo docker compose pull
             sudo docker compose down || true
             echo "${{ secrets.ENV_FILE }}" > /home/${{ secrets.SSH_USER }}/myapp/.env
