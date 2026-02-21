@@ -69,6 +69,8 @@ jobs:
 
       - name: Deploy with Docker Compose
         uses: appleboy/ssh-action@v1.0.0
+        env:
+          GITHUB_SHA: ${{ github.sha }}
         with:
           host: ${{ secrets.SERVER_IP }}
           username: ${{ secrets.SSH_USER }}
@@ -83,5 +85,3 @@ jobs:
             echo "${{ secrets.ENV_FILE }}" > /home/${{ secrets.SSH_USER }}/myapp/.env
             sudo docker compose up -d --build
             sudo docker image prune -f
-        env:
-          GITHUB_SHA: ${{ github.sha }}
