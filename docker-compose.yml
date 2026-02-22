@@ -42,7 +42,7 @@ services:
 
   # Celery Worker
   celery_worker:
-    image: ${DOCKER_HUB_USERNAME}/myapp:${TAG}
+
     restart: unless-stopped
     command: celery -A ${PROJECT_NAME} worker --loglevel=info
     volumes:
