@@ -7,7 +7,7 @@
 #CMD ["python","manage.py","runserver","0.0.0.0:8000"]
 
 # Dockerfile - Universal Python image
-FROM python:3.13
+FROM python:3.10
 
 
 # Set work directory
