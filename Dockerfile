@@ -9,9 +9,6 @@
 # Dockerfile - Universal Python image
 FROM python:3.9-slim-buster
 
-# Set environment variables
-ENV PYTHONUNBUFFERED=1
-ENV PYTHONDONTWRITEBYTECODE=1
 
 # Set work directory
 WORKDIR /myapp
