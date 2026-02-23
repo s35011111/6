@@ -70,6 +70,8 @@ jobs:
             echo "${{secrets.DOCKER_HUB_ACCESS_TOKEN }}" | sudo docker login -u "${{ secrets.DOCKER_HUB_USERNAME }}" --password-stdin
             export TAG=${{ github.sha }}
             sudo -E docker compose pull
+            sudo -E docker compose pull web celery_worker
+
             sudo -E docker compose down || true
             echo "${{ secrets.ENV_FILE }}" > /home/${{ secrets.SSH_USER }}/app/.env
             sudo -E docker compose up -d --build
