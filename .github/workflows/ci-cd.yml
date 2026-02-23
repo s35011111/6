@@ -66,11 +66,11 @@ jobs:
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_KEY }}
           script: |
-            cd /home/${{ secrets.SSH_USER }}/myapp
+            cd /home/${{ secrets.SSH_USER }}/app
             echo "${{secrets.DOCKER_HUB_ACCESS_TOKEN }}" | sudo docker login -u "${{ secrets.DOCKER_HUB_USERNAME }}" --password-stdin
             export TAG=${{ github.sha }}
             sudo -E docker compose pull
             sudo -E docker compose down || true
-            echo "${{ secrets.ENV_FILE }}" > /home/${{ secrets.SSH_USER }}/myapp/.env
+            echo "${{ secrets.ENV_FILE }}" > /home/${{ secrets.SSH_USER }}/app/.env
             sudo -E docker compose up -d --build
             sudo -E docker image prune -f

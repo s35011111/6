@@ -40,7 +40,7 @@ services:
       - mynet
 
   celery_worker:
-    image: ${DOCKER_HUB_USERNAME}/myapp:${TAG}
+    image: ${DOCKER_HUB_USERNAME}/myapp:${TAG:-latest}
     container_name: myapp_celery
     restart: unless-stopped
     command: celery -A myproject worker --loglevel=info
