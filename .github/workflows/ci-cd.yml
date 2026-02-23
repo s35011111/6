@@ -60,7 +60,6 @@ jobs:
       # ----- DEPLOY WITH DOCKER COMPOSE -----
       - name: Deploy
         uses: appleboy/ssh-action@v1.0.0
-        envs: GITHUB_SHA,DOCKER_HUB_USERNAME,DOCKER_HUB_ACCESS_TOKEN
         with:
           host: ${{ secrets.SERVER_IP }}
           username: ${{ secrets.SSH_USER }}
