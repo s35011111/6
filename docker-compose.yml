@@ -26,7 +26,7 @@ services:
       - mynet
 
   web:
-    image: ${DOCKER_HUB_USERNAME}/myapp:${TAG}   # tag is the commit SHA
+    image: ${DOCKER_HUB_USERNAME}/myapp:${TAG-latest}   # tag is the commit SHA
     container_name: myapp_web
     restart: unless-stopped
     ports:
