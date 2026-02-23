@@ -1,22 +1,17 @@
-# Dockerfile
 FROM python:3.10
 
-# Set environment variables
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONUNBUFFERED=1
 
 # Set work directory
-WORKDIR /app
+WORKDIR /myapp
 
-# Install system dependencies (if needed, e.g., for psycopg2)
-RUN apt-get update && apt-get install -y --no-install-recommends gcc libpq-dev && rm -rf /var/lib/apt/lists/*
+# Install system dependencies
 
-# Copy requirements first (for better caching)
+# Install Python dependencies
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install -r requirements.txt
 
-# Copy the entire project
+# Copy project
 COPY . .
 
-# Run the application (will be overridden by docker-compose if needed)
-CMD ["gunicorn", "--bind", "0.0.0.0:8000", "myproject.wsgi:application"]
+# Run the application
+CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
