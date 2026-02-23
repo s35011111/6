@@ -1,8 +1,8 @@
 name: cicd
 
 on:
-  push:
-    branches: [ main ]   # adjust to your default branch
+  [push]
+
 
 jobs:
   build-and-deploy:
