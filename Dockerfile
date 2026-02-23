@@ -1,6 +1,4 @@
 FROM python:3.10
-
-
 # Set work directory
 WORKDIR /myapp
 
