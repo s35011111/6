@@ -1,60 +1,74 @@
+version: '3.8'
+
 services:
-  # Database
   db:
-    image: postgres:14
+    image: postgres:13
+    container_name: myapp_db
     restart: unless-stopped
     environment:
       POSTGRES_DB: ${DATABASE_NAME}
       POSTGRES_USER: ${DATABASE_USER}
       POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
-    ports:
-      - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    env_file:
-      - .env
-  # Redis
-  redis:
-    image: redis:6-alpine
-    restart: unless-stopped
     ports:
-      - "6379:6379"
-    command: redis-server --appendonly yes
+      - "5432:5432"          # optional, if you need external access
+    networks:
+      - mynet
 
-  # Django Application
-  web:
-    ports:
-      - "80:8000"
-    image: ${DOCKER_HUB_USERNAME}/myapp:${TAG}
+  redis:
+    image: redis:7-alpine
+    container_name: myapp_redis
     restart: unless-stopped
-    command: sh -c "python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
-    volumes:
-      - .:/myapp
-    environment:
-      - DATABASE_URL=${DATABASE_URL}
-      - REDIS_URL=${REDIS_URL}
-      - CELERY_BROKER_URL=${CELERY_BROKER_URL}
-      - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND}
-      - ALLOWED_HOSTS=${ALLOWED_HOSTS}
+    ports:
+      - "6379:6379"          # optional
+    networks:
+      - mynet
+
+  web:
+    image: ${DOCKER_HUB_USERNAME}/myapp:${TAG}   # tag is the commit SHA
+    container_name: myapp_web
+    restart: unless-stopped
+    ports:
+      - "80:8000"                            # host:container
+    env_file:
+      - .env                                  # all environment variables
     depends_on:
       - db
       - redis
+    networks:
+      - mynet
 
-  # Celery Worker
   celery_worker:
-
+    image: ${DOCKER_HUB_USERNAME}/myapp:${TAG}
+    container_name: myapp_celery
     restart: unless-stopped
-    command: celery -A ${PROJECT_NAME} worker --loglevel=info
-    volumes:
-      - .:/myapp
-    environment:
-      - REDIS_URL=${REDIS_URL}
-      - CELERY_BROKER_URL=${CELERY_BROKER_URL}
-      - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND}
+    command: celery -A myproject worker --loglevel=info
+    env_file:
+      - .env
     depends_on:
+      - db
       - redis
-      - web
+    networks:
+      - mynet
+
+  # optional celery beat
+  # celery_beat:
+  #   image: ${DOCKER_HUB_USERNAME}/myapp:${TAG}
+  #   container_name: myapp_beat
+  #   restart: unless-stopped
+  #   command: celery -A myproject beat --loglevel=info
+  #   env_file:
+  #     - .env
+  #   depends_on:
+  #     - db
+  #     - redis
+  #   networks:
+  #     - mynet
 
 volumes:
   postgres_data:
 
+networks:
+  mynet:
+    driver: bridge
