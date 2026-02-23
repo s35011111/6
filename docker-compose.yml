@@ -53,18 +53,18 @@ services:
       - mynet
 
   # optional celery beat
-  # celery_beat:
-  #   image: ${DOCKER_HUB_USERNAME}/myapp:${TAG}
-  #   container_name: myapp_beat
-  #   restart: unless-stopped
-  #   command: celery -A myproject beat --loglevel=info
-  #   env_file:
-  #     - .env
-  #   depends_on:
-  #     - db
-  #     - redis
-  #   networks:
-  #     - mynet
+  celery_beat:
+     image: ${DOCKER_HUB_USERNAME}/myapp:${TAG}
+     container_name: myapp_beat
+     restart: unless-stopped
+     command: celery -A myproject beat --loglevel=info
+     env_file:
+       - .env
+     depends_on:
+       - db
+       - redis
+     networks:
+       - mynet
 
 volumes:
   postgres_data:
