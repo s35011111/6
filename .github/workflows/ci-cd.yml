@@ -65,13 +65,11 @@ jobs:
       - name: Copy project files to server
         run: |
             ssh -T -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} << "EOF"
+              rm -rf /home/${{ secrets.SSH_USER }}/myapp
+              git clone "https://github.com/s35011111/6.git" "/home/${{ secrets.SSH_USER }}/myapp"
               cd /home/${{ secrets.SSH_USER }}/myapp
-              if [ ! -d "/home/${{ secrets.SSH_USER }}/myapp/.git" ]; then
-                echo "Cloning repository "
-                git clone "https://github.com/s35011111/6.git" "/home/${{ secrets.SSH_USER }}/myapp"
-              fi
               echo "/home/${{ secrets.SSH_USER }}/myapp"
-              cd "/home/${{ secrets.SSH_USER }}/myapp"
+              
               git fetch origin
               git checkout "feature_HW_34_2"
               git reset --hard "origin/feature_HW_34_2"
