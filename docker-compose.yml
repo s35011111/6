@@ -4,9 +4,9 @@ services:
     image: postgres:14
     restart: unless-stopped
     environment:
-      POSTGRES_DB: ${DATABASE_NAME}
-      POSTGRES_USER: ${DATABASE_USER}
-      POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
+      POSTGRES_DB: my_db6
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 1
     ports:
       - "5432:5432"
     volumes:
@@ -23,17 +23,17 @@ services:
 
   # Django Application
   web:
-    image: ${DOCKER_HUB_USERNAME}/myapp:${TAG}
+    build: . #image: ${DOCKER_HUB_USERNAME}/myapp:${TAG}
     restart: unless-stopped
     command: sh -c "python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
     volumes:
       - .:/myapp
     environment:
-      - DATABASE_URL=${DATABASE_URL}
-      - REDIS_URL=${REDIS_URL}
-      - CELERY_BROKER_URL=${CELERY_BROKER_URL}
-      - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND}
-      - ALLOWED_HOSTS=${ALLOWED_HOSTS}
+      DATABASE_URL: db
+      REDIS_URL: ${REDIS_URL}
+      CELERY_BROKER_URL: ${CELERY_BROKER_URL}
+      CELERY_RESULT_BACKEND: ${CELERY_RESULT_BACKEND}
+      ALLOWED_HOSTS: ${ALLOWED_HOSTS}
     ports:
       - "80:8000"
     depends_on:
@@ -42,9 +42,9 @@ services:
 
   # Celery Worker
   celery_worker:
-    image: ${DOCKER_HUB_USERNAME}/myapp:${TAG}
+    build: .
     restart: unless-stopped
-    command: celery -A ${PROJECT_NAME} worker --loglevel=info
+    command: celery -A config worker --loglevel=info
     volumes:
       - .:/myapp
     environment:
@@ -57,21 +57,17 @@ services:
 
 
   celery_beat:
-     image: ${DOCKER_HUB_USERNAME}/myapp:${TAG}
+     build: .
      container_name: myapp_beat
-     restart: unless-stopped
-     command: celery -A myproject beat --loglevel=info
+     command: celery -A config beat --loglevel=info
+     environment:
+        DATABASE_HOST: db
      env_file:
        - .env
      depends_on:
        - db
        - redis
-     networks:
-       - mynet
 
 volumes:
   postgres_data:
 
-networks:
-  mynet:
-    driver: bridge

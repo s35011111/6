@@ -25,10 +25,6 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-      - name: start celery worker
-        run: |
-          celery -A config worker --loglevel=info --detach
-          sleep 5 
 
       - name: Run tests
         env:
@@ -83,4 +79,3 @@ jobs:
             sudo -E docker compose down || true
             echo "${{ secrets.ENV_FILE }}" > /home/${{ secrets.SSH_USER }}/myapp/.env
             sudo -E docker compose up -d --build
-            sudo -E docker image prune -f
