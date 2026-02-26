@@ -74,6 +74,10 @@ jobs:
               git checkout "feature_HW_34_2"
               git reset --hard "origin/feature_HW_34_2"
             EOF
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
 
       - name: Deploy with Docker Compose
         uses: appleboy/ssh-action@v1.0.0
