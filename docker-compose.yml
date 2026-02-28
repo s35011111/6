@@ -4,9 +4,9 @@ services:
     image: postgres:14
     restart: unless-stopped
     environment:
-      POSTGRES_DB: ${DATABASE_NAME}
-      POSTGRES_USER: ${DATABASE_USER}
-      POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
+      POSTGRES_DB: my_db6
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 1
     ports:
       - "5432:5432"
     volumes:
