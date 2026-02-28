@@ -40,7 +40,7 @@ services:
 
   # Celery Worker
   celery_worker:
-    build: .
+    image: ${DOCKER_HUB_USERNAME}/myapp:${TAG}
     restart: unless-stopped
     command: celery -A config worker --loglevel=info
     environment:
@@ -53,7 +53,7 @@ services:
 
 
   celery_beat:
-     build: .
+     image: ${DOCKER_HUB_USERNAME}/myapp:${TAG}
      container_name: myapp_beat
      command: celery -A config beat --loglevel=info
      environment:
