@@ -55,6 +55,7 @@ services:
   celery_beat:
      image: ${DOCKER_HUB_USERNAME}/myapp:${TAG}
      container_name: myapp_beat
+     restart: unless-stopped
      command: celery -A config beat --loglevel=info
      environment:
         DATABASE_HOST: db
