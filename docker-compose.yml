@@ -1,0 +1,72 @@
+services:
+  # Database
+  db:
+    image: postgres:14
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: my_db6
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 1
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    env_file:
+      - .env
+  # Redis
+  redis:
+    image: redis:6-alpine
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+
+  # Django Application
+  web:
+    image: ${DOCKER_HUB_USERNAME}/myapp:${TAG}
+    restart: unless-stopped
+    command: sh -c "python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
+    environment:
+      DATABASE_URL: db
+      REDIS_URL: ${REDIS_URL}
+      CELERY_BROKER_URL: ${CELERY_BROKER_URL}
+      CELERY_RESULT_BACKEND: ${CELERY_RESULT_BACKEND}
+      ALLOWED_HOSTS: ${ALLOWED_HOSTS}
+    ports:
+      - "80:8000"
+    depends_on:
+      - db
+      - redis
+    env_file:
+      - .env
+
+  # Celery Worker
+  celery_worker:
+    image: ${DOCKER_HUB_USERNAME}/myapp:${TAG}
+    restart: unless-stopped
+    command: celery -A config worker --loglevel=info
+    environment:
+      - REDIS_URL=${REDIS_URL}
+      - CELERY_BROKER_URL=${CELERY_BROKER_URL}
+      - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND}
+    depends_on:
+      - redis
+      - web
+
+
+  celery_beat:
+     image: ${DOCKER_HUB_USERNAME}/myapp:${TAG}
+     container_name: myapp_beat
+     restart: unless-stopped
+     command: celery -A config beat --loglevel=info
+     environment:
+        DATABASE_HOST: db
+     env_file:
+       - .env
+     depends_on:
+       - db
+       - redis
+
+volumes:
+  postgres_data:
+
