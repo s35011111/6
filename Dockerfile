@@ -7,9 +7,10 @@ WORKDIR /myapp
 # Install Python dependencies
 COPY requirements.txt .
 RUN pip install -r requirements.txt
-#RUN python manage.py collectstatic --noinput
 # Copy project
 COPY . .
+RUN python manage.py collectstatic --noinput
 
 # Run the application
-CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
+CMD ["gunicorn","--bind", "0.0.0.0:8000","config.wsgi:application"]
+#CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]

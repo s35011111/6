@@ -4,9 +4,9 @@ services:
     image: postgres:14
     restart: unless-stopped
     environment:
-      POSTGRES_DB: my_db6
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: 1
+      POSTGRES_DB: ${DATABASE_NAME}
+      POSTGRES_USER: ${DATABASE_USER}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
     ports:
       - "5432:5432"
     volumes:
@@ -26,8 +26,6 @@ services:
     image: ${DOCKER_HUB_USERNAME}/myapp:${TAG}
     restart: unless-stopped
     command: sh -c "python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
-    volumes:
-      - .:/myapp
     environment:
       DATABASE_URL: db
       REDIS_URL: ${REDIS_URL}
@@ -45,8 +43,6 @@ services:
     build: .
     restart: unless-stopped
     command: celery -A config worker --loglevel=info
-    volumes:
-      - .:/myapp
     environment:
       - REDIS_URL=${REDIS_URL}
       - CELERY_BROKER_URL=${CELERY_BROKER_URL}

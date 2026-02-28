@@ -48,36 +48,21 @@ jobs:
 
       - name: Push Docker image to Docker Hub
         run: docker push ${{ secrets.DOCKER_HUB_USERNAME }}/myapp:${{ github.sha }}
+      - name: Copy docker-compose.yml to server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          source: "docker-compose.yml"
+          target: "/home/${{ secrets.SSH_USER }}/myapp"
 
   deploy:
     runs-on: ubuntu-latest
     needs: build
-    if: github.ref == 'refs/heads/feature_HW_34_2'
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
-      - name: Set up SSH
-        uses: webfactory/ssh-agent@v0.5.4
-        with:
-            ssh-private-key: ${{ secrets.SSH_KEY }}
-
-      - name: Copy project files to server
-        run: |
-            ssh -T -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} << "EOF"
-              rm -rf /home/${{ secrets.SSH_USER }}/myapp
-              git clone "https://github.com/s35011111/6.git" "/home/${{ secrets.SSH_USER }}/myapp"
-              cd /home/${{ secrets.SSH_USER }}/myapp
-              echo "/home/${{ secrets.SSH_USER }}/myapp"
-              
-              git fetch origin
-              git checkout "feature_HW_34_2"
-              git reset --hard "origin/feature_HW_34_2"
-            EOF
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
 
       - name: Deploy with Docker Compose
         uses: appleboy/ssh-action@v1.0.0
@@ -88,9 +73,9 @@ jobs:
           key: ${{ secrets.SSH_KEY }}
           script: |
             cd /home/${{ secrets.SSH_USER }}/myapp
-            echo "${{ secrets.ENV_FILE }}" > /home/${{ secrets.SSH_USER }}/myapp/.env
             echo "${{secrets.DOCKER_HUB_ACCESS_TOKEN }}" | sudo docker login -u "${{ secrets.DOCKER_HUB_USERNAME }}" --password-stdin
             export TAG=${{ github.sha }}
             sudo -E docker compose pull
             sudo -E docker compose down || true
+            echo "${{ secrets.ENV_FILE }}" > /home/${{ secrets.SSH_USER }}/myapp/.env
             sudo -E docker compose up -d --build
