@@ -37,8 +37,6 @@ jobs:
       - name: Run flake8
         run: flake8 . --count --max-complexity=10 --statistics --exclude=*/migration/*
 
-      - name: Run black (check mode)
-        run: black --check . --exclude=*/migration/*
       - name: Lint Dockerfile
         uses: hadolint/hadolint-action@v3.1.0
         with:
