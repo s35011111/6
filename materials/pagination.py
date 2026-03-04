@@ -1,4 +1,5 @@
-from rest_framework.pagination import  PageNumberPagination
+from rest_framework.pagination import PageNumberPagination
+
 
 class StandardPagePagination(PageNumberPagination):
     page_size = 20

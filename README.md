@@ -8,16 +8,23 @@
  + Скопируйте файлы проекта на свой компьютер
  + Заполните env файл используя шаблон env_templates
  + Открыв терминал перейдите в директорию проекта
- + Запустите проект с помощью команд:
+ + Запустите проект с помощью команд используйте файл docker-compose.local.yml для локальной работы проекта:
 
-docker-compose up --build -d
+docker-compose -f docker-compose.local.yml up -d
 
 docker-compose exec django python manage.py migrate
 
  + В браузере сможете увидеть работающий проект по адресу:
-
 http://localhost:8000/api
 
+ + Для запуска на сервер отправьте проект на гитхаб с помощью команды push. Файл ci-cd.yml установит проект на сервер автоматически.
+ + Для правильной установки через гитхаб необходимо настроить секретные переменные:
+   - DOCKER_HUB_USERNAME
+   - DOCKER_HUB_ACCESS_TOKEN 
+   - SERVER_IP
+   - SSH_USER
+   - SSH_KEY
+   - ENV_FILE
  ## Работоспособность сервисов
 Чтобы проверить работают ли сервисы используйте команду:
 docker-compose ps 
@@ -27,3 +34,4 @@ docker-compose ps
  + materials
  + templates
  + users
+ + .github

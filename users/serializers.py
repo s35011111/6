@@ -3,10 +3,11 @@ from decimal import Decimal
 from django.contrib.auth.models import Group
 from rest_framework import serializers
 from django.contrib.auth.password_validation import validate_password
-
 from materials.models import Course
 from .models import CustomUser
 from .models import Payment
+from .models import Subscription
+from django.contrib.auth import get_user_model
 
 
 class UserRegistrationSerializer(serializers.ModelSerializer):
@@ -28,7 +29,7 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         validated_data.pop('password2')
         user = CustomUser.objects.create_user(**validated_data)
         try:
-            user_group=Group.objects.get(name='user')
+            user_group = Group.objects.get(name='user')
             user_group.add(user_group)
         except:
             pass
@@ -49,7 +50,6 @@ class UserProfileSerializer(serializers.ModelSerializer):
 
 class UserListSerializer(serializers.ModelSerializer):
 
-
     class Meta:
         model = CustomUser
 
@@ -66,7 +66,7 @@ class PaymentSerializer(serializers.ModelSerializer):
         fields = [
             'user', 'user_email', 'course', 'course_name',
             'lesson', 'lesson_name', 'amount', 'payment_method',
-             'payment_date'
+            'payment_date'
         ]
         read_only_fields = fields
 
@@ -85,21 +85,19 @@ class PaymentSerializer(serializers.ModelSerializer):
         return data
 
 
-from rest_framework import serializers
-from .models import Subscription
-from django.contrib.auth import get_user_model
-
 User = get_user_model()
 
 
 class SubscriptionSerializer(serializers.ModelSerializer):
-    course_name = serializers.CharField(source='course.name',read_only=True)
-    user_email = serializers.EmailField(source='user.email',read_only=True)
+    course_name = serializers.CharField(source='course.name', read_only=True)
+    user_email = serializers.EmailField(source='user.email', read_only=True)
+
     class Meta:
         model = Subscription
-        fields = [ 'id', 'user', 'user_email', 'course', 'course_name']
+        fields = ['id', 'user', 'user_email', 'course', 'course_name']
         read_only_fields = ['user']
-        extra_kwargs = {'course': {'required': True},}
+        extra_kwargs = {'course': {'required': True}, }
+
     def validate(self, attrs):
         request = self.context.get('request')
         if request and request.user.is_authenticated:

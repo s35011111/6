@@ -25,6 +25,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
+          pip install flake8 black  
 
       - name: Run tests
         env:
@@ -32,6 +33,16 @@ jobs:
           CELERY_RESULT_BACKEND: redis://localhost:6379/0
         run: python manage.py test
 
+
+      - name: Run flake8
+        run: flake8 . --count --max-complexity=10 --statistics
+
+      - name: Run black (check mode)
+        run: black --check .
+      - name: Lint Dockerfile
+        uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: Dockerfile
   build:
     needs: tests
     runs-on: ubuntu-latest
@@ -56,6 +67,8 @@ jobs:
           key: ${{ secrets.SSH_KEY }}
           source: "docker-compose.yml"
           target: "/home/${{ secrets.SSH_USER }}/myapp"
+
+
 
   deploy:
     runs-on: ubuntu-latest

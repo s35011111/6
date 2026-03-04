@@ -6,13 +6,11 @@ from django.conf import settings
 from typing import Any
 
 
-
-
 ########################################################################
 class Course(models.Model):
     name = models.CharField(max_length=100)
     description = models.TextField()
-    image = models.ImageField(upload_to='materials/',blank=True)
+    image = models.ImageField(upload_to='materials/', blank=True)
     author = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -20,7 +18,11 @@ class Course(models.Model):
     )
     stripe_product_id = models.CharField(max_length=100, blank=True, null=True)
     stripe_price_id = models.CharField(max_length=100, blank=True, null=True)
-    price = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    price = models.DecimalField(max_digits=10,
+                                decimal_places=2,
+                                blank=True,
+                                null=True)
+
     def __str__(self: Any) -> str:
         return self.name
 
@@ -33,12 +35,14 @@ class Course(models.Model):
         ]
 
 ########################################################################
+
+
 class Lesson(models.Model):
     name = models.CharField(max_length=100)
-    course=models.ForeignKey('Course',on_delete=models.CASCADE)
-    description = models.TextField( blank=True, null=True)
-    image=models.ImageField(upload_to='materials/', blank=True, null=True)
-    video_link=models.URLField(max_length=500, blank=True, null=True)
+    course = models.ForeignKey('Course', on_delete=models.CASCADE)
+    description = models.TextField(blank=True, null=True)
+    image = models.ImageField(upload_to='materials/', blank=True, null=True)
+    video_link = models.URLField(max_length=500, blank=True, null=True)
     is_active = models.BooleanField(default=True)
     author = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -56,8 +60,3 @@ class Lesson(models.Model):
         permissions = [
             ("can_approve_lesson", "Can approve lessons"),
         ]
-
-
-########################################################################
-
-

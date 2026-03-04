@@ -1,15 +1,13 @@
-from django.contrib import admin
-
 # Register your models here.
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-
 from .models import CustomUser, Payment, Subscription
+import json
 
 
 @admin.register(CustomUser)
 class CustomUserAdmin(UserAdmin):
-    list_display = ('id','email', 'first_name', 'last_name', 'is_staff', 'date_joined')
+    list_display = ('id', 'email', 'first_name', 'last_name', 'is_staff', 'date_joined')
     list_filter = ('is_staff', 'is_superuser', 'groups')
     search_fields = ('email', 'first_name', 'last_name')
     ordering = ('email',)
@@ -29,17 +27,11 @@ class CustomUserAdmin(UserAdmin):
     )
 
 
-from django.contrib import admin
-import json
-
-
 @admin.register(Payment)
 class PaymentAdmin(admin.ModelAdmin):
-    list_display = ['id', 'user_email', 'course_name', 'amount','status'  ]#,'created_at' 'status''stripe_payment_id''stripe_payment_id',
-    #list_filter = ['status', 'created_at']
-    search_fields = [ 'user__email']
+    list_display = ['id', 'user_email', 'course_name', 'amount', 'status']
+    search_fields = ['user__email']
 
-    # Add detail view with pretty JSON
     readonly_fields = ['metadata_display']
 
     fieldsets = (
@@ -47,7 +39,7 @@ class PaymentAdmin(admin.ModelAdmin):
             'fields': ('user', 'course', 'amount',)
         }),
         ('Stripe Info', {
-            'fields': ( 'metadata_display',)
+            'fields': ('metadata_display',)
         }),
     )
 
@@ -61,6 +53,8 @@ class PaymentAdmin(admin.ModelAdmin):
         return f"<pre>{json.dumps(obj.metadata, indent=2)}</pre>" if obj.metadata else "No metadata"
 
     metadata_display.allow_tags = True
+
+
 @admin.register(Subscription)
 class SubscriptionAdmin(admin.ModelAdmin):
-    list_display = ['user','course','date']
+    list_display = ['user', 'course', 'date']

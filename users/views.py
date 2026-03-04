@@ -24,6 +24,7 @@ from .serializers import (
     CheckoutSessionResponseSerializer
 )
 from .service import StripeService
+from celery.result import AsyncResult
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -60,10 +61,8 @@ class UserViewSet(viewsets.ModelViewSet):
             user.is_active = True
             user.save()
 
-            user_group=Group.objects.get(name='user')
+            user_group = Group.objects.get(name='user')
             user.groups.add(user_group)
-
-
             refresh = RefreshToken.for_user(user)
 
             return Response({
@@ -129,10 +128,9 @@ class UserViewSet(viewsets.ModelViewSet):
             return Response({"message": "Logged out"}, status=status.HTTP_200_OK)
 
 
-
-
 class CreateStripeProductView(APIView):
     permission_classes = [permissions.IsAuthenticated]
+
     def post(self, request):
         serializer = CreateStripeProductSerializer(data=request.data, context={'request': request})
         serializer.is_valid(raise_exception=True)
@@ -164,8 +162,11 @@ class CreateStripeProductView(APIView):
                 {'error': str(e)},
                 status=status.HTTP_400_BAD_REQUEST
             )
+
+
 class CreateStripePriceView(APIView):
     permission_classes = [permissions.IsAuthenticated]
+
     def post(self, request):
         serializer = CreateStripePriceSerializer(data=request.data, context={'request': request})
         serializer.is_valid(raise_exception=True)
@@ -190,8 +191,11 @@ class CreateStripePriceView(APIView):
                 {'error': str(e)},
                 status=status.HTTP_400_BAD_REQUEST
             )
+
+
 class CreateCheckoutSessionView(APIView):
     permission_classes = [permissions.IsAuthenticated]
+
     def post(self, request):
         serializer = CreateCheckoutSessionSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -218,10 +222,9 @@ class CreateCheckoutSessionView(APIView):
                 'session_id': session.id,
                 'url': session.url
             })
-
-
             user = self.request.user
-            subscribtion = Subscription.objects.create(user=user,course=course)
+            subscribtion = Subscription.objects.create(user=user,
+                                                       course=course)
             subscribtion.save()
 
             return Response(response_serializer.data, status=status.HTTP_201_CREATED)
@@ -230,9 +233,12 @@ class CreateCheckoutSessionView(APIView):
                 {'error': str(e)},
                 status=status.HTTP_400_BAD_REQUEST
             )
+
+
 class StripeWebhookView(APIView):
     permission_classes = []
     http_method_names = ['post']
+
     def post(self, request):
         payload = request.body
         sig_header = request.META.get('HTTP_STRIPE_SIGNATURE')
@@ -242,9 +248,9 @@ class StripeWebhookView(APIView):
             event = stripe.Webhook.construct_event(
                 payload, sig_header, settings.STRIPE_WEBHOOK_SECRET
             )
-        except ValueError as e:
+        except ValueError:
             return Response({'error': 'Invalid payload'}, status=400)
-        except stripe.error.SignatureVerificationError as e:
+        except stripe.error.SignatureVerificationError:
             return Response({'error': 'Invalid signature'}, status=400)
         if event['type'] == 'checkout.session.completed':
             session = event['data']['object']
@@ -253,6 +259,7 @@ class StripeWebhookView(APIView):
             session = event['data']['object']
             self.handle_checkout_session_failed(session)
         return Response({'success': True})
+
     def handle_checkout_session_completed(self, session):
         try:
             purchase = Payment.objects.get(stripe_session_id=session['id'])
@@ -260,11 +267,9 @@ class StripeWebhookView(APIView):
             purchase.stripe_payment_intent_id = session.get('payment_intent')
             purchase.completed_at = timezone.now()
             purchase.save()
-
-
-            #
         except Exception:
             pass
+
     def handle_checkout_session_failed(self, session):
         try:
             purchase = Payment.objects.get(stripe_session_id=session['id'])
@@ -272,18 +277,24 @@ class StripeWebhookView(APIView):
             purchase.save()
         except Exception:
             pass
+
+
 class PaymentListView(generics.ListAPIView):
     serializer_class = PaymentSerializer
     permission_classes = [permissions.IsAuthenticated]
-    filter_backends = [DjangoFilterBackend,filters.SearchFilter,filters.OrderingFilter]
-    filterset_fields=['course']
-    search_fields= ['amount','payment_date']
-    ordering=['-payment_date']
+    filter_backends = [DjangoFilterBackend,
+                       filters.SearchFilter,
+                       filters.OrderingFilter]
+    filterset_fields = ['course']
+    search_fields = ['amount', 'payment_date']
+    ordering = ['-payment_date']
+
     def get_queryset(self):
-        user=self.request.user
+        user = self.request.user
         if user.is_staff or user.is_superuser:
-            return Payment.objects.all().select_related('course','user')
+            return Payment.objects.all().select_related('course', 'user')
         return Payment.objects.filter(user=user).select_related('course')
+
 
 class SubscriptionView(generics.ListAPIView):
     serializer_class = SubscriptionSerializer
@@ -292,12 +303,6 @@ class SubscriptionView(generics.ListAPIView):
 
     def get_queryset(self):
         return Subscription.objects.filter(user=self.request.user)
-
-
-from celery.result import AsyncResult
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework import permissions
 
 
 class TaskStatusView(APIView):

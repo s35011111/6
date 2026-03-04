@@ -1,15 +1,10 @@
-from django.test import TestCase
-
-# Create your tests here.
-from django.test import TestCase
-
 # Create your tests here.
 from django.contrib.auth import get_user_model
 from django.urls import reverse
 from rest_framework.test import APITestCase, APIClient
 from rest_framework import status
 from users.models import Subscription
-from materials.models import Lesson, Course
+from materials.models import Course
 
 User = get_user_model()
 
@@ -39,7 +34,7 @@ class SubscriptionViewSetTests(APITestCase):
         self.course1 = Course.objects.create(
             name='Test Course',
             description='Test Description',
-            author = self.another_user
+            author=self.another_user
         )
         self.course2 = Course.objects.create(
             name='Test course two',
@@ -47,19 +42,16 @@ class SubscriptionViewSetTests(APITestCase):
             author=self.another_user
         )
 
-
         self.subscription1 = Subscription.objects.create(
             course=self.course1,
-            user = self.regular_user
+            user=self.regular_user
         )
         self.subscription2 = Subscription.objects.create(
             course=self.course2,
-            user = self.another_user
+            user=self.another_user
         )
 
         self.list_url = reverse('lesson-list')
-
-
         self.client.force_authenticate(user=None)
 
         self.client = APIClient()
@@ -100,7 +92,9 @@ class SubscriptionViewSetTests(APITestCase):
         }
 
         response = self.client.post(url, data, format='json')
-        self.assertIn(response.status_code,[status.HTTP_405_METHOD_NOT_ALLOWED,status.HTTP_400_BAD_REQUEST])
+        self.assertIn(response.status_code,
+                      [status.HTTP_405_METHOD_NOT_ALLOWED,
+                       status.HTTP_400_BAD_REQUEST])
         self.assertEqual(Subscription.objects.count(), 2)
 
     def test_create_duplicate_subscription(self):
@@ -116,7 +110,9 @@ class SubscriptionViewSetTests(APITestCase):
         response = self.client.post(url, data, format='json')
 
         self.assertIn(response.status_code,
-                      [status.HTTP_400_BAD_REQUEST,status.HTTP_405_METHOD_NOT_ALLOWED, status.HTTP_201_CREATED])
+                      [status.HTTP_400_BAD_REQUEST,
+                       status.HTTP_405_METHOD_NOT_ALLOWED,
+                       status.HTTP_201_CREATED])
 
     """     def test_retrieve_subscription(self):
 
@@ -190,7 +186,8 @@ class SubscriptionViewSetTests(APITestCase):
 
         response = self.client.post(url, data, format='json')
         self.assertIn(response.status_code,
-                         [status.HTTP_405_METHOD_NOT_ALLOWED, status.HTTP_400_BAD_REQUEST])
+                      [status.HTTP_405_METHOD_NOT_ALLOWED,
+                       status.HTTP_400_BAD_REQUEST])
 
     def test_create_subscription_different_user(self):
 
@@ -205,7 +202,9 @@ class SubscriptionViewSetTests(APITestCase):
         response = self.client.post(url, data, format='json')
 
         self.assertIn(response.status_code,
-                      [status.HTTP_405_METHOD_NOT_ALLOWED,status.HTTP_403_FORBIDDEN, status.HTTP_400_BAD_REQUEST])
+                      [status.HTTP_405_METHOD_NOT_ALLOWED,
+                       status.HTTP_403_FORBIDDEN,
+                       status.HTTP_400_BAD_REQUEST])
 
     def test_subscription_to_own_course(self):
 
@@ -219,6 +218,6 @@ class SubscriptionViewSetTests(APITestCase):
 
         response = self.client.post(url, data, format='json')
         self.assertIn(response.status_code,
-                      [status.HTTP_405_METHOD_NOT_ALLOWED,status.HTTP_403_FORBIDDEN, status.HTTP_400_BAD_REQUEST])
-
-
+                      [status.HTTP_405_METHOD_NOT_ALLOWED,
+                       status.HTTP_403_FORBIDDEN,
+                       status.HTTP_400_BAD_REQUEST])

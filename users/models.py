@@ -1,11 +1,9 @@
-from django.db import models
-
 # Create your models here.
 from django.db import models
 from django.conf import settings
 from materials.models import Course
 from django.utils.translation import gettext_lazy as _
-from django.contrib.auth.models import AbstractUser,BaseUserManager
+from django.contrib.auth.models import AbstractUser, BaseUserManager
 
 
 class CustomUserManager(BaseUserManager):
@@ -32,35 +30,44 @@ class CustomUserManager(BaseUserManager):
         return self.create_user(email, password, **extra_fields)
 
 
-
 class CustomUser(AbstractUser):
     username = None
 
-    email=models.EmailField(unique=True,blank=False)
+    email = models.EmailField(unique=True, blank=False)
     phone = models.CharField(max_length=20, blank=True, null=True)
     image = models.ImageField(upload_to='profile_pics/', blank=True, null=True)
     city = models.CharField(blank=True, null=True)
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = []
-    objects=CustomUserManager()
+    objects = CustomUserManager()
+
     def __str__(self):
         return self.email
+
     class Meta:
         verbose_name = _('User')
         verbose_name_plural = _('Users')
 
 
-
-
-
 class Payment(models.Model):
-    PAYMENT_METHOD_CHOICES = [('наличные', 'Наличные'),('перевод', 'Перевод на счет')]
-    user = models.ForeignKey(settings.AUTH_USER_MODEL,on_delete=models.PROTECT,  related_name='payments')
+    PAYMENT_METHOD_CHOICES = [('наличные', 'Наличные'), ('перевод', 'Перевод на счет')]
+    user = models.ForeignKey(settings.AUTH_USER_MODEL,
+                             on_delete=models.PROTECT,
+                             related_name='payments')
     payment_date = models.DateTimeField(auto_now_add=True)
-    course = models.ForeignKey('materials.Course',on_delete=models.PROTECT,related_name='payments',null=True,  blank=True )
-    lesson = models.ForeignKey('materials.Lesson',on_delete=models.PROTECT,related_name='payments', null=True,blank=True)
-    amount = models.DecimalField(max_digits=10,decimal_places=2,)
-    payment_method = models.CharField(max_length=20,choices=PAYMENT_METHOD_CHOICES)
+    course = models.ForeignKey('materials.Course',
+                               on_delete=models.PROTECT,
+                               related_name='payments',
+                               null=True,
+                               blank=True)
+    lesson = models.ForeignKey('materials.Lesson',
+                               on_delete=models.PROTECT,
+                               related_name='payments',
+                               null=True,
+                               blank=True)
+    amount = models.DecimalField(max_digits=10, decimal_places=2,)
+    payment_method = models.CharField(max_length=20,
+                                      choices=PAYMENT_METHOD_CHOICES)
     stripe_session_id = models.CharField(max_length=255)
     stripe_payment_intent_id = models.CharField(max_length=255, null=True, blank=True)
     STATUS_CHOISES = [('failed', 'FAILED'), ('completed', 'COMPLETED')]
@@ -92,15 +99,18 @@ class Payment(models.Model):
         self.clean()
         super().save(*args, **kwargs)
 
+
 class Subscription(models.Model):
-    user = models.ForeignKey(CustomUser,on_delete=models.CASCADE,related_name='subscriptions')
-    course = models.ForeignKey(Course,on_delete=models.CASCADE,related_name='subscribers')
+    user = models.ForeignKey(CustomUser,
+                             on_delete=models.CASCADE,
+                             related_name='subscriptions')
+    course = models.ForeignKey(Course,
+                               on_delete=models.CASCADE,
+                               related_name='subscribers')
     date = models.DateTimeField(auto_now_add=True)
+
     class Meta:
         unique_together = ['user', 'course']
 
-
     def __str__(self):
         return f"{self.user.email} subscribed to {self.course.name}"
-
-

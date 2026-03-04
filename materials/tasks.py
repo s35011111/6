@@ -28,7 +28,10 @@ def send_course_update_notification(course_id, update_message):
                 'course': course,
                 'update_message': update_message,
             })
-            emails.append((subject, message, settings.DEFAULT_FROM_EMAIL, [user.email]))
+            emails.append((subject,
+                           message,
+                           settings.DEFAULT_FROM_EMAIL,
+                           [user.email]))
         send_mass_mail(emails, fail_silently=False)
         count = len(emails)
         return f"Notified {count} subscribers about course update"
@@ -36,6 +39,7 @@ def send_course_update_notification(course_id, update_message):
         return "Course not found"
     except Exception as e:
         return f"Error: {str(e)}"
+
 
 @shared_task
 def deactivate_inactive_users():
@@ -52,11 +56,11 @@ def deactivate_inactive_users():
         count = inactive_users.count()
         if count == 0:
             return "No inactive users found"
-        user_ids = list(inactive_users.values_list('id', flat=True))
         inactive_users.update(is_active=False)
         return f"Deactivated {count} inactive users"
     except Exception as e:
         return f"Error: {str(e)}"
+
 
 @shared_task
 def check_and_notify_course_updates():
@@ -69,9 +73,9 @@ def check_and_notify_course_updates():
         results = []
         for course in updated_courses:
             if course.should_notify_subscribers():
-                result = send_course_update_notification.delay(
+                results = send_course_update_notification.delay(
                     course_id=course.id,
-                    update_message="The course has been updated with new content!"
+                    update_message="The course has been updated!"
                 )
                 results.append(f"Notified subscribers of {course.title}")
         if not results:
@@ -79,4 +83,3 @@ def check_and_notify_course_updates():
         return f"Processed {len(results)} course updates"
     except Exception as e:
         return f"Error: {str(e)}"
-

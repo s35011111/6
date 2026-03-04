@@ -1,4 +1,4 @@
-from django.test import TestCase
+
 
 # Create your tests here.
 from django.contrib.auth import get_user_model
@@ -35,7 +35,7 @@ class LessonViewSetTests(APITestCase):
         self.Course = Course.objects.create(
             name='Test Course',
             description='Test Description',
-            author = self.another_user
+            author=self.another_user
         )
 
         self.lesson1 = Lesson.objects.create(
@@ -55,12 +55,14 @@ class LessonViewSetTests(APITestCase):
         )
 
         self.list_url = reverse('lesson-list')
-        self.detail_url = reverse('lesson-detail', kwargs={'pk': self.lesson1.id})
+        self.detail_url = reverse('lesson-detail',
+                                  kwargs={'pk': self.lesson1.id})
 
         self.client.force_authenticate(user=None)
 
     def tearDown(self):
         pass
+
     def test_list_lessons_unauthenticated(self):
         response = self.client.get(self.list_url)
 
@@ -135,8 +137,6 @@ class LessonViewSetTests(APITestCase):
         response = self.client.get(self.detail_url)
 
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
-        #self.assertEqual(response.data['id'], self.lesson1.id)
-        #self.assertEqual(response.data['name'], 'First lesson')
 
     def test_retrieve_nonexistent_lesson(self):
         self.client.force_authenticate(user=self.regular_user)
@@ -200,8 +200,10 @@ class LessonViewSetTests(APITestCase):
 
         response = self.client.patch(self.detail_url, data, format='json')
 
-        self.assertIn(response.status_code, [status.HTTP_400_BAD_REQUEST,status.HTTP_405_METHOD_NOT_ALLOWED,status.HTTP_200_OK])
-
+        self.assertIn(response.status_code,
+                      [status.HTTP_400_BAD_REQUEST,
+                       status.HTTP_405_METHOD_NOT_ALLOWED,
+                       status.HTTP_200_OK])
 
     def test_delete_own_lesson(self):
         self.client.force_authenticate(user=self.regular_user)
@@ -223,53 +225,7 @@ class LessonViewSetTests(APITestCase):
     def test_admin_can_delete_any_lesson(self):
         self.client.force_authenticate(user=self.admin_user)
 
-        response = self.client.delete(self.detail_url)
-
-        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
-
-    def test_admin_can_delete_any_lesson(self):
-        self.client.force_authenticate(user=self.admin_user)
-
         url = reverse('lesson-detail', kwargs={'pk': 999})
         response = self.client.delete(url)
 
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
-
-
-
-"""
-
-
-    def test_permissions_based_on_user_role(self):
-
-        self.client.force_authenticate(user=None)
-
-        response = self.client.get(self.list_url)
-        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
-
-        response = self.client.post(self.list_url, {}, format='json')
-        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
-
-        self.client.force_authenticate(user=self.regular_user)
-
-        data = {
-            'name': 'User lesson',
-            'description': 'description',
-            'course': self.Course.id
-        }
-        response = self.client.post(self.list_url, data, format='json')
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-
-        response = self.client.patch(self.detail_url, {'name': 'Updated'})
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-
-        other_lesson_url = reverse('lesson-detail', kwargs={'pk': self.lesson2.id})
-        response = self.client.patch(other_lesson_url, {'name': 'Updated'})
-        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
-
-        self.client.force_authenticate(user=self.admin_user)
-
-        response = self.client.patch(self.detail_url, {'name': 'Admin Updated'})
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-
-"""

@@ -3,13 +3,10 @@ from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from .views import UserViewSet,  PaymentListView, SubscriptionView
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-#from .views import PaymentViewSet
 from . import views
 
 router = DefaultRouter()
-#router.register(r'payments', PaymentViewSet, basename='payments')
 router.register(r'users', UserViewSet, basename='users')
-#router.register(r'subscriptions', SubscriptionViewSet, basename='subscription')
 urlpatterns = [
     path('', include(router.urls)),
 
@@ -31,6 +28,6 @@ urlpatterns = [
     path('stripe/webhook/',
          views.StripeWebhookView.as_view(),
          name='stripe-webhook'),
-    path('payments/',PaymentListView.as_view(),name='payment-list'),
+    path('payments/', PaymentListView.as_view(), name='payment-list'),
     path('subscriptions/', SubscriptionView.as_view(), name='subscription-list'),
 ]
