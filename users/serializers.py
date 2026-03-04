@@ -32,10 +32,7 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
             user_group = Group.objects.get(name='user')
             user_group.add(user_group)
         except:
-            pass
-            """
-            user_group=Group.objects.create(name='user')
-            user_group.add(user_group)"""
+            user_group = []
 
         return user
 
