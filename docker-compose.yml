@@ -95,4 +95,4 @@ volumes:
   media_volume:
 networks:
   mynet:
-    driver: brige
+    driver: bridge
