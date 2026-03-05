@@ -6,8 +6,8 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         moderator_group, created = Group.objects.get_or_create(name='moderator')
         moderator_lst = ['view_lesson', 'change_lesson',
-                       'view_course', 'change_course',
-                       'view_customuser']
+                         'view_course', 'change_course',
+                         'view_customuser']
         moderator_permissions = []
         for i in moderator_lst:
 
@@ -15,7 +15,7 @@ class Command(BaseCommand):
             moderator_permissions.append(perm)
         moderator_group.permissions.set(moderator_permissions)
 
-        user_group,created = Group.objects.get_or_create(name='user')
+        user_group, created = Group.objects.get_or_create(name='user')
         user_lst = ['view_lesson', 'change_lesson',
                     'add_lesson', 'delete_lesson',
                     'view_course', 'change_course',
