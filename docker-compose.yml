@@ -30,10 +30,8 @@ services:
       - static_volume:/myapp/static
       - media_volume:/myapp/media
     depends_on:
-      db:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
+      - db
+      - redis
     networks:
       - mynet
     # No ports published – internal only
