@@ -8,7 +8,7 @@ class LessonSerializer(serializers.ModelSerializer):
     course_name = serializers.CharField(source='course.name', read_only=True)
     description = serializers.CharField(validators=[validate_no_links])
     video_link = serializers.CharField(validators=[validate_youtube_only],
-                                     required=False)
+                                       required=False)
 
     class Meta:
         model = Lesson
