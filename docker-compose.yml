@@ -7,19 +7,21 @@ services:
       POSTGRES_DB: ${DATABASE_NAME}
       POSTGRES_USER: ${DATABASE_USER}
       POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
-    ports:
-      - "5432:5432"
+
     volumes:
       - postgres_data:/var/lib/postgresql/data
     env_file:
       - .env
+    networks:
+      - mynet
   # Redis
   redis:
     image: redis:6-alpine
     restart: unless-stopped
-    ports:
-      - "6379:6379"
+
     command: redis-server --appendonly yes
+    networks:
+      - mynet
 
   # Django Application
   web:
@@ -36,8 +38,6 @@ services:
       CELERY_BROKER_URL: ${CELERY_BROKER_URL}
       CELERY_RESULT_BACKEND: ${CELERY_RESULT_BACKEND}
       ALLOWED_HOSTS: ${ALLOWED_HOSTS}
-    ports:
-      - "80:8000"
     depends_on:
       - db
       - redis
@@ -56,6 +56,8 @@ services:
     depends_on:
       - redis
       - web
+    networks:
+      - mynet
 
 
   celery_beat:
@@ -70,6 +72,8 @@ services:
      depends_on:
        - db
        - redis
+     networks:
+       - mynet
   nginx:
     image: nginx:alpine
     container_name: myapp_nginx
@@ -83,8 +87,11 @@ services:
       - media_volume:/myapp/media
     depends_on:
       - web
+    networks:
+      - mynet
 volumes:
   postgres_data:
   static_volume:
   media_volume:
-
+networks:
+  mynet:
