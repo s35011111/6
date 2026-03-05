@@ -89,5 +89,5 @@ volumes:
   media_volume:
 
 networks:
-  mynet_prod:
+  mynet:
     driver: bridge
