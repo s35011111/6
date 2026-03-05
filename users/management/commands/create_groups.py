@@ -17,11 +17,11 @@ class Command(BaseCommand):
 
         user_group,created = Group.objects.get_or_create(name='user')
         user_lst = ['view_lesson', 'change_lesson',
-                     'add_lesson', 'delete_lesson',
+                    'add_lesson', 'delete_lesson',
                     'view_course', 'change_course',
-                     'add_course', 'delete_course',
+                    'add_course', 'delete_course',
                     'view_customuser', 'change_customuser',
-                     'add_customuser', 'view_payment']
+                    'add_customuser', 'view_payment']
         user_permissions = []
         for i in user_lst:
 

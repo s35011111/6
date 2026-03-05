@@ -35,7 +35,7 @@ jobs:
 
 
       - name: Run flake8
-        run: flake8 . --count --max-complexity=10 --statistics --exclude=*/migration/*
+        run: flake8 . --count --max-complexity=10 --statistics --exclude=*/migrations/*
 
       - name: Lint Dockerfile
         uses: hadolint/hadolint-action@v3.1.0

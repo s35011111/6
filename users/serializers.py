@@ -31,8 +31,8 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         try:
             user_group = Group.objects.get(name='user')
             user_group.add(user_group)
-        except:
-            user_group = []
+        except Exception:
+            pass
 
         return user
 
