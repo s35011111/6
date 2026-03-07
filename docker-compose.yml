@@ -22,7 +22,7 @@ services:
     image: ${DOCKER_HUB_USERNAME}/myapp:${TAG}
     container_name: myapp_web
     restart: unless-stopped
-    command: python manage.py runserver 0.0.0.0:8000
+    command: gunicorn --bind 0.0.0.0:8000 config.wsgi:application
     env_file:
       - .env
     volumes:
